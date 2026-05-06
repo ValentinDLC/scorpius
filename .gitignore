@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Scorpius data (jamais en ligne)
+data/
+logs/
+
+# Secrets
+.env
+config/profil.yaml
+
+# Playwright
+playwright-report/
+
+# OS
+.DS_Store
+Thumbs.db
