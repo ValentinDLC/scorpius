@@ -1,0 +1,49 @@
+# Scorpius v2 — Exemple de configuration
+# Copiez ce fichier → profil.yaml et remplissez vos infos
+
+profil:
+  metier: "Développeur Full-Stack"
+  competences: ["Python", "React", "Node.js"]
+  budget_min: 500
+  langue: "fr"
+  description: >
+    Décrivez votre profil en quelques phrases.
+
+plateformes:
+  - url: "https://www.codeur.com/projects"
+    tier: 1
+    actif: true
+  - url: "https://www.malt.fr/missions"
+    tier: 1
+    actif: false
+
+llm:
+  provider: "groq"
+  api_key: "gsk_VOTRE_CLE_ICI"
+  model: "llama-3.3-70b-versatile"
+  ollama_host: "http://localhost:11434"
+
+notifications:
+  telegram_chat_id: "VOTRE_CHAT_ID"
+
+scraping:
+  frequence_minutes: 60
+  delai_min_secondes: 3
+  delai_max_secondes: 8
+  heures_creuses: false
+
+vocal_id:
+  actif: false
+  voix: "feminine"
+  langue: "fr"
+  stt_model: "base"
+  tts_engine: "edge-tts"
+
+voice_auth:
+  actif: false
+  seuil_similarite: 0.85
+  max_tentatives: 3
+
+dashboard:
+  theme: "dark"
+  port: 5000
