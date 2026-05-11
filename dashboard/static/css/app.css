@@ -1,0 +1,44 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f13; --bg2: #1a1a24; --bg3: #242433;
+  --border: #2e2e42; --text: #e8e8f0; --text2: #9090a8;
+  --accent: #7c5cbf; --accent2: #9b7dd4;
+  --green: #4caf82; --yellow: #f0b429; --orange: #f07529; --red: #e05252;
+  --radius: 12px; --nav-h: 56px; --bottom-h: 64px;
+}
+[data-theme="light"] {
+  --bg: #f5f5fa; --bg2: #ffffff; --bg3: #eeeef5;
+  --border: #d0d0e0; --text: #1a1a2e; --text2: #606080;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding-bottom: 80px;
+}
+.app-header {
+  position: sticky; top: 0; z-index: 100; height: var(--nav-h);
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 1rem;
+}
+.app-brand { font-weight: 700; color: var(--accent2); text-decoration: none; }
+.nav-desktop { display: none; }
+.nav-mobile {
+  position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-h);
+  background: var(--bg2); border-top: 1px solid var(--border); display: flex; z-index: 100;
+}
+.nav-mobile a {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text2); text-decoration: none; font-size: 0.7rem;
+}
+.nav-mobile a.active { color: var(--accent2); }
+main { padding: 1rem; max-width: 800px; margin: 0 auto; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem; }
+.badge { padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+.btn { padding: 0.5rem 1rem; border-radius: 8px; border: none; cursor: pointer; color: white; background: var(--accent); text-decoration: none;}
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+@media (min-width: 768px) {
+  .nav-desktop { display: flex; gap: 1rem; list-style: none; }
+  .nav-desktop a { color: var(--text2); text-decoration: none; }
+  .nav-desktop a.active { color: var(--text); }
+  .nav-mobile { display: none; }
+}

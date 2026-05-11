@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p style="color: var(--text2);">Page en construction (STEP 09)</p>
+<div class="card" style="margin-top: 1rem;">
+    <p>Métier : <strong>{{ profil.metier }}</strong></p>
+    <p>LLM : <strong>{{ llm.provider }} / {{ llm.model }}</strong></p>
+</div>
+{% endblock %}

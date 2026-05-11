@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="{{ theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#7c5cbf">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <title>{% block title %}Scorpius{% endblock %}</title>
+</head>
+<body>
+<header class="app-header">
+    <a href="{{ url_for('missions') }}" class="app-brand">🦂 Scorpius</a>
+    {% if session.get('authenticated') %}
+    <ul class="nav-desktop">
+        <li><a href="{{ url_for('missions') }}">Missions</a></li>
+        <li><a href="{{ url_for('stats') }}">Stats</a></li>
+        <li><a href="{{ url_for('settings') }}">Settings</a></li>
+    </ul>
+    <div style="display:flex; gap:0.5rem;">
+        <button id="btn-install-pwa" class="btn" style="display:none;">📲 Installer</button>
+        <button onclick="toggleTheme()" class="btn btn-ghost">☀️/🌙</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-ghost nav-desktop">Quitter</a>
+    </div>
+    {% endif %}
+</header>
+<main>
+    {% block content %}{% endblock %}
+</main>
+{% if session.get('authenticated') %}
+<nav class="nav-mobile">
+    <a href="{{ url_for('missions') }}">📋<span>Missions</span></a>
+    <a href="{{ url_for('stats') }}">📊<span>Stats</span></a>
+    <a href="{{ url_for('settings') }}">⚙️<span>Settings</span></a>
+    <a href="{{ url_for('logout') }}">🚪<span>Quitter</span></a>
+</nav>
+{% endif %}
+<script src="/static/js/app.js"></script>
+</body>
+</html>

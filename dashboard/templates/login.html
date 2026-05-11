@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Connexion{% endblock %}
+
+{% block content %}
+<div style="
+    max-width: 400px;
+    margin: 8vh auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+">
+    <div style="text-align: center;">
+        <div style="font-size: 3rem;">🦂</div>
+        <h1 style="font-size: 1.8rem; color: var(--accent2); margin: 0.5rem 0;">
+            Scorpius
+        </h1>
+        <p style="color: var(--text2); font-size: 0.9rem;">
+            Agent de prospection freelance
+        </p>
+    </div>
+
+    <div class="card">
+        <form method="POST" action="{{ url_for('login') }}">
+            <div style="margin-bottom: 1rem;">
+                <label style="
+                    display: block;
+                    color: var(--text2);
+                    font-size: 0.85rem;
+                    margin-bottom: 0.4rem;
+                ">
+                    Mot de passe
+                </label>
+                <input
+                    type="password"
+                    name="password"
+                    autofocus
+                    placeholder="••••••••"
+                    style="
+                        width: 100%;
+                        background: var(--bg3);
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        padding: 0.7rem 1rem;
+                        color: var(--text);
+                        font-size: 1rem;
+                        outline: none;
+                    "
+                >
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Se connecter
+            </button>
+        </form>
+
+        <div style="
+            text-align: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        ">
+            <p style="color: var(--text2); font-size: 0.8rem; margin-bottom: 0.75rem;">
+                Ou connectez-vous avec votre voix
+            </p>
+            <button
+                class="btn btn-ghost"
+                style="width: 100%;"
+                disabled
+                title="Disponible au STEP 17"
+            >
+                🎙️ Connexion vocale (bientôt)
+            </button>
+        </div>
+    </div>
+
+    <p style="text-align: center; color: var(--text2); font-size: 0.75rem;">
+        Scorpius v{{ version }} · {{ annee }}
+    </p>
+</div>
+{% endblock %}

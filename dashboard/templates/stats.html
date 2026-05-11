@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Stats{% endblock %}
+{% block content %}
+<h1>Stats & Gains</h1>
+<p style="color: var(--text2);">Page en construction (STEP 09)</p>
+<div class="card" style="margin-top: 1rem;">
+    <p>Gains acquis : <strong>{{ gains.acquis | format_euros }}</strong></p>
+    <p>En cours : <strong>{{ gains.en_cours | format_euros }}</strong></p>
+    <p>Potentiels : <strong>{{ gains.potentiels | format_euros }}</strong></p>
+</div>
+{% endblock %}

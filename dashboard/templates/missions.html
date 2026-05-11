@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Missions{% endblock %}
+
+{% block content %}
+<div style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+">
+    <div>
+        <h1 style="font-size: 1.4rem;">Missions</h1>
+        <p style="color: var(--text2); font-size: 0.9rem;">
+            {{ missions|length }} mission(s) — {{ compteurs.total }} au total
+        </p>
+    </div>
+    <button
+        class="btn btn-primary"
+        onclick="lancerScraping()"
+        id="btn-scraping"
+    >
+        🔄 Scraper maintenant
+    </button>
+</div>
+
+<!-- Compteurs statuts -->
+<div style="
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+">
+    {% set statuts = [
+        ('', 'Toutes', compteurs.total),
+        ('proposee', 'Proposées', compteurs.proposee),
+        ('en_attente', 'En attente', compteurs.en_attente),
+        ('en_cours', 'En cours', compteurs.en_cours),
+        ('terminee', 'Terminées', compteurs.terminee),
+        ('refusee', 'Refusées', compteurs.refusee),
+    ] %}
+    {% for val, label, count in statuts %}
+    <a
+        href="{{ url_for('missions', statut=val) }}"
+        style="
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            text-decoration: none;
+            font-size: 0.85rem;
+            color: {{ 'var(--accent2)' if filtre_statut == val else 'var(--text2)' }};
+            background: {{ 'var(--bg3)' if filtre_statut == val else 'transparent' }};
+        "
+    >
+        {{ label }} <strong>{{ count }}</strong>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Liste missions -->
+{% if missions %}
+    {% for m in missions %}
+    <div class="card" style="margin-bottom: 0.75rem;" id="mission-{{ m.id }}">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+
+            <!-- Score -->
+            <div style="
+                min-width: 56px;
+                text-align: center;
+                padding: 0.5rem;
+                border-radius: 8px;
+                background: var(--bg3);
+            ">
+                <div class="{{ m.score | score_class }}" style="font-size: 1.3rem; font-weight: 700;">
+                    {{ m.score }}
+                </div>
+                <div style="font-size: 0.65rem; color: var(--text2);">/ 100</div>
+            </div>
+
+            <!-- Infos mission -->
+            <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <h3 style="font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ m.titre }}
+                    </h3>
+                    <span class="badge badge-{{ m.statut }}">
+                        {{ m.statut | statut_label }}
+                    </span>
+                </div>
+
+                {% if m.description %}
+                <p style="
+                    color: var(--text2);
+                    font-size: 0.875rem;
+                    margin-top: 0.3rem;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                ">
+                    {{ m.description }}
+                </p>
+                {% endif %}
+
+                <div style="
+                    display: flex;
+                    gap: 1rem;
+                    margin-top: 0.5rem;
+                    font-size: 0.8rem;
+                    color: var(--text2);
+                    flex-wrap: wrap;
+                ">
+                    <span>📌 {{ m.plateforme | capitalize }}</span>
+                    {% if m.budget_min or m.budget_max %}
+                    <span>💰 {{ m | format_budget }}</span>
+                    {% endif %}
+                    <span>🕐 {{ m.date_scraping | format_date }}</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                <a href="{{ m.url }}" target="_blank" class="btn btn-ghost btn-sm">
+                    🔗 Voir
+                </a>
+                <button
+                    class="btn btn-ghost btn-sm"
+                    onclick="ouvrirStatut({{ m.id }}, '{{ m.statut }}', '{{ m.titre | replace("'", "\\'") }}')"
+                >
+                    ✏️
+                </button>
+            </div>
+
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card" style="text-align: center; padding: 4rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🦂</div>
+        <p style="color: var(--text2);">
+            Aucune mission pour le moment.<br>
+            Lance un scraping pour commencer.
+        </p>
+        <button
+            class="btn btn-primary"
+            style="margin-top: 1.5rem;"
+            onclick="lancerScraping()"
+        >
+            🔄 Lancer le scraping
+        </button>
+    </div>
+{% endif %}
+
+<!-- Modal statut -->
+<div id="modal-statut" style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+">
+    <div class="card" style="width: 400px; max-width: 90vw;">
+        <h3 style="margin-bottom: 1rem;" id="modal-titre">Changer le statut</h3>
+
+        <select id="select-statut" style="
+            width: 100%;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        ">
+            <option value="proposee">📋 Proposée</option>
+            <option value="en_attente">⏳ En attente</option>
+            <option value="en_cours">🔨 En cours</option>
+            <option value="terminee">✅ Terminée</option>
+            <option value="refusee">❌ Refusée</option>
+        </select>
+
+        <input
+            type="number"
+            id="input-gains"
+            placeholder="Gains réalisés (€) — optionnel"
+            style="
+                width: 100%;
+                background: var(--bg3);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 0.6rem;
+                color: var(--text);
+                margin-bottom: 0.75rem;
+            "
+        >
+
+        <textarea
+            id="input-notes"
+            placeholder="Notes — optionnel"
+            rows="2"
+            style="
+                width: 100%;
+                background: var(--bg3);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 0.6rem;
+                color: var(--text);
+                resize: vertical;
+                margin-bottom: 1rem;
+            "
+        ></textarea>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button class="btn btn-ghost" onclick="fermerModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="sauvegarderStatut()">Sauvegarder</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let missionIdCourant = null;
+
+// ── Scraping ──────────────────────────────────────────
+
+async function lancerScraping() {
+    const btn = document.getElementById('btn-scraping');
+    btn.disabled = true;
+    btn.textContent = '⏳ Scraping en cours...';
+
+    try {
+        const resp = await fetch('/api/scraping/start', { method: 'POST' });
+        const data = await resp.json();
+        alert(data.message);
+    } catch(e) {
+        alert('Erreur lors du lancement du scraping');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Scraper maintenant';
+    }
+}
+
+// ── Modal statut ──────────────────────────────────────
+
+function ouvrirStatut(id, statutActuel, titre) {
+    missionIdCourant = id;
+    document.getElementById('modal-titre').textContent = titre;
+    document.getElementById('select-statut').value = statutActuel;
+    document.getElementById('input-gains').value = '';
+    document.getElementById('input-notes').value = '';
+
+    const modal = document.getElementById('modal-statut');
+    modal.style.display = 'flex';
+}
+
+function fermerModal() {
+    document.getElementById('modal-statut').style.display = 'none';
+    missionIdCourant = null;
+}
+
+async function sauvegarderStatut() {
+    if (!missionIdCourant) return;
+
+    const statut = document.getElementById('select-statut').value;
+    const gains  = document.getElementById('input-gains').value;
+    const notes  = document.getElementById('input-notes').value;
+
+    try {
+        const resp = await fetch(`/api/missions/${missionIdCourant}/statut`, {
+            method:  'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                statut,
+                gains:  gains ? parseFloat(gains) : null,
+                notes:  notes || null,
+            }),
+        });
+        const data = await resp.json();
+
+        if (data.ok) {
+            fermerModal();
+            location.reload();
+        } else {
+            alert('Erreur : ' + data.message);
+        }
+    } catch(e) {
+        alert('Erreur réseau');
+    }
+}
+
+// Ferme modal en cliquant dehors
+document.getElementById('modal-statut').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) fermerModal();
+});
+
+// Raccourci Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') fermerModal();
+});
+</script>
+
+{% endblock %}
