@@ -1,0 +1,16 @@
+# Configuration du worker PC — Scorpius v2
+# Ce fichier reste sur le PC du client
+
+api:
+  # URL de l'API Scorpius (Fly.io après déploiement)
+  # En dev local : http://localhost:5000
+  url: "http://localhost:5000"
+  key: "scorpius-worker-key"   # Même valeur que WORKER_API_KEY dans .env
+
+scraping:
+  frequence_minutes: 60
+  delai_min_secondes: 3
+  delai_max_secondes: 8
+
+# Reprend le profil.yaml pour le scraping
+profil_path: "config/profil.yaml"
