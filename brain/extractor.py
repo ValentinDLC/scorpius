@@ -205,7 +205,7 @@ def _parse_json_response(raw):
     raise ValueError(f"Impossible de parser le JSON du LLM.\nRéponse brute : {raw[:200]}")
 
 
-def extract_missions_from_html(html, plateforme, llm=None, max_chars=12000):
+def extract_missions_from_html(html, plateforme, llm=None, max_chars=3000):
     if llm is None:
         llm = LLMClient()
     html_clean = _clean_html(html)
