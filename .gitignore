@@ -23,3 +23,4 @@ Thumbs.db
 *.backup
 *.sqlite.backup
 cookies.txt
+dashboard/templates/*.backup.*

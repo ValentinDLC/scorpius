@@ -216,15 +216,42 @@ def stats():
 @login_required
 def settings():
     cfg = get_config()
+
+    def cfg_value(name, default=None):
+        """
+        Compatibilité avec plusieurs versions de ScorpiusConfig :
+        - cfg.get("clé")
+        - cfg.profil / cfg.llm / cfg.scraping
+        - cfg.plateformes_actives
+        """
+        if hasattr(cfg, "get"):
+            try:
+                return cfg.get(name, default)
+            except Exception:
+                pass
+        return getattr(cfg, name, default)
+
+    profil = cfg_value("profil", {})
+    llm = cfg_value("llm", {})
+    scraping = cfg_value("scraping", {})
+    vocal = cfg_value("vocal_id", {})
+
+    plateformes = cfg_value("plateformes", None)
+    if plateformes is None:
+        plateformes = getattr(cfg, "plateformes_actives", [])
+
+    if callable(plateformes):
+        plateformes = plateformes()
+
     return render_template(
         "settings.html",
-        theme       = get_theme(),
-        config      = cfg,
-        profil      = cfg.profil,
-        llm         = cfg.llm,
-        scraping    = cfg.scraping,
-        vocal       = cfg.vocal_id,
-        plateformes = cfg._raw.get("plateformes", []),
+        theme=get_theme(),
+        config=cfg,
+        profil=profil,
+        llm=llm,
+        scraping=scraping,
+        vocal=vocal,
+        plateformes=plateformes or [],
     )
 
 
