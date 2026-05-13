@@ -1,11 +1,140 @@
 {% extends "base.html" %}
+
 {% block title %}Scorpius — Stats{% endblock %}
+
 {% block content %}
-<h1>Stats & Gains</h1>
-<p style="color: var(--text2);">Page en construction (STEP 09)</p>
-<div class="card" style="margin-top: 1rem;">
-    <p>Gains acquis : <strong>{{ gains.acquis | format_euros }}</strong></p>
-    <p>En cours : <strong>{{ gains.en_cours | format_euros }}</strong></p>
-    <p>Potentiels : <strong>{{ gains.potentiels | format_euros }}</strong></p>
-</div>
+
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Stats & Gains</h1>
+        <p class="page-subtitle">
+            Vue synthétique de ton pipeline commercial
+        </p>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value score-high">
+            {{ gains.acquis | format_euros }}
+        </div>
+        <div class="stat-label">Gains acquis</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-value score-medium">
+            {{ gains.en_cours | format_euros }}
+        </div>
+        <div class="stat-label">En cours</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-value score-low">
+            {{ gains.potentiels | format_euros }}
+        </div>
+        <div class="stat-label">Potentiel</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-value">
+            {{ compteurs.total }}
+        </div>
+        <div class="stat-label">Missions total</div>
+    </div>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        Pipeline missions
+    </h2>
+
+    {% set rows = [
+        ("📋", "Proposées", compteurs.proposee, "proposee"),
+        ("⏳", "En attente", compteurs.en_attente, "en_attente"),
+        ("🔨", "En cours", compteurs.en_cours, "en_cours"),
+        ("✅", "Terminées", compteurs.terminee, "terminee"),
+        ("❌", "Refusées", compteurs.refusee, "refusee")
+    ] %}
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for icon, label, value, statut in rows %}
+        {% set pct = (value / compteurs.total * 100) if compteurs.total else 0 %}
+        <div>
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.85rem;
+                margin-bottom: 0.25rem;
+            ">
+                <span>{{ icon }} {{ label }}</span>
+                <strong>{{ value }}</strong>
+            </div>
+            <div style="
+                height: 8px;
+                background: var(--bg3);
+                border-radius: 999px;
+                overflow: hidden;
+            ">
+                <div style="
+                    height: 100%;
+                    width: {{ pct }}%;
+                    background: var(--accent);
+                    border-radius: 999px;
+                "></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        Évolution mensuelle
+    </h2>
+
+    {% if evolution %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% set max_gain = evolution | map(attribute='gains') | list | max %}
+            {% for row in evolution %}
+                {% set pct = (row.gains / max_gain * 100) if max_gain else 0 %}
+                <div>
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 0.85rem;
+                        margin-bottom: 0.25rem;
+                    ">
+                        <span>{{ row.mois }}</span>
+                        <strong>{{ row.gains | format_euros }}</strong>
+                    </div>
+                    <div style="
+                        height: 10px;
+                        background: var(--bg3);
+                        border-radius: 999px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            height: 100%;
+                            width: {{ pct }}%;
+                            background: var(--green);
+                            border-radius: 999px;
+                        "></div>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text2); margin-top: 0.2rem;">
+                        {{ row.nb_missions }} mission(s)
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state" style="padding: 2rem 1rem;">
+            <div class="empty-icon">📊</div>
+            <p>
+                Pas encore de mission terminée.<br>
+                Les gains mensuels apparaîtront ici.
+            </p>
+        </div>
+    {% endif %}
+</section>
+
 {% endblock %}

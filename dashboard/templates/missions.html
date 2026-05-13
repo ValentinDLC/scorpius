@@ -1,218 +1,259 @@
 {% extends "base.html" %}
+
 {% block title %}Scorpius — Missions{% endblock %}
 
 {% block content %}
-<div style="
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-">
+
+<section class="page-header">
     <div>
-        <h1 style="font-size: 1.4rem;">Missions</h1>
-        <p style="color: var(--text2); font-size: 0.9rem;">
-            {{ missions|length }} mission(s) — {{ compteurs.total }} au total
+        <h1 class="page-title">Missions</h1>
+        <p class="page-subtitle">
+            {{ missions|length }} affichée(s) · {{ compteurs.total }} au total
         </p>
     </div>
-    <button
-        class="btn btn-primary"
-        onclick="lancerScraping()"
-        id="btn-scraping"
-    >
-        🔄 Scraper maintenant
-    </button>
-</div>
 
-<!-- Compteurs statuts -->
-<div style="
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-">
+    <button class="btn btn-primary btn-sm" id="btn-trigger-scrape">
+        🔄 Scraper
+    </button>
+</section>
+
+<!-- Stats rapides -->
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ compteurs.proposee }}</div>
+        <div class="stat-label">Proposées</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ compteurs.en_attente }}</div>
+        <div class="stat-label">En attente</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ compteurs.en_cours }}</div>
+        <div class="stat-label">En cours</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.potentiels | format_euros }}</div>
+        <div class="stat-label">Potentiel</div>
+    </div>
+</section>
+
+<!-- Recherche -->
+<form method="GET" action="{{ url_for('missions') }}" class="card" style="margin-bottom: 1rem;">
+    <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label for="q">Recherche</label>
+        <input
+            id="q"
+            type="search"
+            name="q"
+            value="{{ filtre_recherche or '' }}"
+            placeholder="Titre, description, client..."
+        >
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="score_min">Score min</label>
+            <select id="score_min" name="score_min">
+                {% for val in [0, 40, 60, 80] %}
+                <option value="{{ val }}" {{ "selected" if filtre_score_min == val else "" }}>
+                    {{ val }}+
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="plateforme">Plateforme</label>
+            <select id="plateforme" name="plateforme">
+                <option value="">Toutes</option>
+                {% for p in plateformes_dispo %}
+                <option value="{{ p }}" {{ "selected" if filtre_plateforme == p else "" }}>
+                    {{ p|capitalize }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% if filtre_statut %}
+    <input type="hidden" name="statut" value="{{ filtre_statut }}">
+    {% endif %}
+
+    <button class="btn btn-primary btn-full" style="margin-top: 1rem;">
+        🔎 Filtrer
+    </button>
+</form>
+
+<!-- Filtres statuts -->
+<section class="filtres">
     {% set statuts = [
-        ('', 'Toutes', compteurs.total),
-        ('proposee', 'Proposées', compteurs.proposee),
-        ('en_attente', 'En attente', compteurs.en_attente),
-        ('en_cours', 'En cours', compteurs.en_cours),
-        ('terminee', 'Terminées', compteurs.terminee),
-        ('refusee', 'Refusées', compteurs.refusee),
+        ("", "Toutes", compteurs.total),
+        ("proposee", "Proposées", compteurs.proposee),
+        ("en_attente", "En attente", compteurs.en_attente),
+        ("en_cours", "En cours", compteurs.en_cours),
+        ("terminee", "Terminées", compteurs.terminee),
+        ("refusee", "Refusées", compteurs.refusee)
     ] %}
-    {% for val, label, count in statuts %}
+
+    {% for value, label, count in statuts %}
     <a
-        href="{{ url_for('missions', statut=val) }}"
-        style="
-            padding: 0.4rem 0.9rem;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            text-decoration: none;
-            font-size: 0.85rem;
-            color: {{ 'var(--accent2)' if filtre_statut == val else 'var(--text2)' }};
-            background: {{ 'var(--bg3)' if filtre_statut == val else 'transparent' }};
-        "
+        class="filtre-btn {{ 'active' if filtre_statut == value else '' }}"
+        href="{{ url_for('missions', statut=value, score_min=filtre_score_min, plateforme=filtre_plateforme, q=filtre_recherche) }}"
+        style="text-decoration: none;"
     >
         {{ label }} <strong>{{ count }}</strong>
     </a>
     {% endfor %}
-</div>
+</section>
 
 <!-- Liste missions -->
 {% if missions %}
+<section>
     {% for m in missions %}
-    <div class="card" style="margin-bottom: 0.75rem;" id="mission-{{ m.id }}">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
-
-            <!-- Score -->
-            <div style="
-                min-width: 56px;
-                text-align: center;
-                padding: 0.5rem;
-                border-radius: 8px;
-                background: var(--bg3);
-            ">
-                <div class="{{ m.score | score_class }}" style="font-size: 1.3rem; font-weight: 700;">
+    <article class="mission-card" id="mission-{{ m.id }}">
+        <div class="mission-header">
+            <div class="mission-score">
+                <div class="score-number {{ m.score | score_class }}">
                     {{ m.score }}
                 </div>
-                <div style="font-size: 0.65rem; color: var(--text2);">/ 100</div>
+                <div class="score-label">/100</div>
             </div>
 
-            <!-- Infos mission -->
-            <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                    <h3 style="font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {{ m.titre }}
-                    </h3>
+            <div class="mission-body">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem;">
+                    <h2 class="mission-titre">{{ m.titre }}</h2>
+                </div>
+
+                <div style="margin-bottom: 0.45rem;">
                     <span class="badge badge-{{ m.statut }}">
                         {{ m.statut | statut_label }}
                     </span>
                 </div>
 
                 {% if m.description %}
-                <p style="
-                    color: var(--text2);
-                    font-size: 0.875rem;
-                    margin-top: 0.3rem;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                ">
+                <p class="mission-desc">
                     {{ m.description }}
+                </p>
+                {% endif %}
+
+                <div class="mission-meta">
+                    <span>📌 {{ m.plateforme|capitalize }}</span>
+                    <span>💰 {{ m | format_budget }}</span>
+                    <span>🕒 {{ m.date_scraping | format_date }}</span>
+                </div>
+
+                {% if m.score_raisons %}
+                <p style="
+                    margin-top: 0.6rem;
+                    color: var(--text2);
+                    font-size: 0.78rem;
+                    font-style: italic;
+                ">
+                    💬 {{ m.score_raisons }}
                 </p>
                 {% endif %}
 
                 <div style="
                     display: flex;
-                    gap: 1rem;
-                    margin-top: 0.5rem;
-                    font-size: 0.8rem;
-                    color: var(--text2);
+                    gap: 0.5rem;
                     flex-wrap: wrap;
+                    margin-top: 0.85rem;
                 ">
-                    <span>📌 {{ m.plateforme | capitalize }}</span>
-                    {% if m.budget_min or m.budget_max %}
-                    <span>💰 {{ m | format_budget }}</span>
-                    {% endif %}
-                    <span>🕐 {{ m.date_scraping | format_date }}</span>
+                    <a class="btn btn-ghost btn-sm" href="{{ m.url }}" target="_blank" rel="noopener">
+                        🔗 Voir
+                    </a>
+
+                    <button
+                        class="btn btn-ghost btn-sm btn-open-statut"
+                        data-id="{{ m.id }}"
+                        data-statut="{{ m.statut }}"
+                        data-title="{{ m.titre }}"
+                    >
+                        ✏️ Statut
+                    </button>
+
+                    <button
+                        class="btn btn-ghost btn-sm btn-relance"
+                        data-id="{{ m.id }}"
+                    >
+                        🔔 Relance
+                    </button>
+
+                    <button
+                        class="btn btn-danger btn-sm btn-delete"
+                        data-id="{{ m.id }}"
+                    >
+                        🗑️
+                    </button>
                 </div>
             </div>
-
-            <!-- Actions -->
-            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
-                <a href="{{ m.url }}" target="_blank" class="btn btn-ghost btn-sm">
-                    🔗 Voir
-                </a>
-                <button
-                    class="btn btn-ghost btn-sm"
-                    onclick="ouvrirStatut({{ m.id }}, '{{ m.statut }}', '{{ m.titre | replace("'", "\\'") }}')"
-                >
-                    ✏️
-                </button>
-            </div>
-
         </div>
-    </div>
+    </article>
     {% endfor %}
+</section>
 {% else %}
-    <div class="card" style="text-align: center; padding: 4rem 2rem;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🦂</div>
-        <p style="color: var(--text2);">
-            Aucune mission pour le moment.<br>
-            Lance un scraping pour commencer.
-        </p>
-        <button
-            class="btn btn-primary"
-            style="margin-top: 1.5rem;"
-            onclick="lancerScraping()"
-        >
-            🔄 Lancer le scraping
-        </button>
-    </div>
+<section class="empty-state card">
+    <div class="empty-icon">🦂</div>
+    <h2 style="margin-bottom: 0.5rem;">Aucune mission</h2>
+    <p>
+        Lance un scraping depuis le bouton ci-dessus.<br>
+        Le worker PC doit être démarré.
+    </p>
+    <button class="btn btn-primary" id="btn-trigger-scrape-empty">
+        🔄 Lancer le scraping
+    </button>
+</section>
 {% endif %}
 
 <!-- Modal statut -->
-<div id="modal-statut" style="
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-">
-    <div class="card" style="width: 400px; max-width: 90vw;">
-        <h3 style="margin-bottom: 1rem;" id="modal-titre">Changer le statut</h3>
+<div class="modal-overlay" id="modal-statut">
+    <div class="modal">
+        <div class="modal-handle"></div>
 
-        <select id="select-statut" style="
-            width: 100%;
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.6rem;
-            color: var(--text);
-            margin-bottom: 0.75rem;
-        ">
-            <option value="proposee">📋 Proposée</option>
-            <option value="en_attente">⏳ En attente</option>
-            <option value="en_cours">🔨 En cours</option>
-            <option value="terminee">✅ Terminée</option>
-            <option value="refusee">❌ Refusée</option>
-        </select>
+        <h2 class="modal-title" id="modal-statut-title">
+            Modifier la mission
+        </h2>
 
-        <input
-            type="number"
-            id="input-gains"
-            placeholder="Gains réalisés (€) — optionnel"
-            style="
-                width: 100%;
-                background: var(--bg3);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 0.6rem;
-                color: var(--text);
-                margin-bottom: 0.75rem;
-            "
-        >
+        <input type="hidden" id="modal-mission-id">
 
-        <textarea
-            id="input-notes"
-            placeholder="Notes — optionnel"
-            rows="2"
-            style="
-                width: 100%;
-                background: var(--bg3);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 0.6rem;
-                color: var(--text);
-                resize: vertical;
-                margin-bottom: 1rem;
-            "
-        ></textarea>
+        <div class="form-group">
+            <label for="modal-statut-select">Statut</label>
+            <select id="modal-statut-select">
+                <option value="proposee">📋 Proposée</option>
+                <option value="en_attente">⏳ En attente</option>
+                <option value="en_cours">🔨 En cours</option>
+                <option value="terminee">✅ Terminée</option>
+                <option value="refusee">❌ Refusée</option>
+            </select>
+        </div>
 
-        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-            <button class="btn btn-ghost" onclick="fermerModal()">Annuler</button>
-            <button class="btn btn-primary" onclick="sauvegarderStatut()">Sauvegarder</button>
+        <div class="form-group">
+            <label for="modal-gains">Gains réalisés (€)</label>
+            <input
+                id="modal-gains"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Ex : 1500"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="modal-notes">Notes</label>
+            <textarea
+                id="modal-notes"
+                rows="3"
+                placeholder="Notes internes..."
+            ></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-ghost btn-full" id="btn-close-modal">
+                Annuler
+            </button>
+            <button class="btn btn-primary btn-full" id="btn-save-statut">
+                Sauvegarder
+            </button>
         </div>
     </div>
 </div>
@@ -221,84 +262,102 @@
 
 {% block extra_js %}
 <script>
-let missionIdCourant = null;
+function openStatutModal(id, statut, title) {
+    document.getElementById("modal-mission-id").value = id;
+    document.getElementById("modal-statut-select").value = statut;
+    document.getElementById("modal-statut-title").textContent = title || "Modifier la mission";
+    document.getElementById("modal-gains").value = "";
+    document.getElementById("modal-notes").value = "";
+    document.getElementById("modal-statut").classList.add("open");
+}
 
-// ── Scraping ──────────────────────────────────────────
+function closeStatutModal() {
+    document.getElementById("modal-statut").classList.remove("open");
+}
 
-async function lancerScraping() {
-    const btn = document.getElementById('btn-scraping');
-    btn.disabled = true;
-    btn.textContent = '⏳ Scraping en cours...';
+async function saveStatut() {
+    const id = document.getElementById("modal-mission-id").value;
+    const statut = document.getElementById("modal-statut-select").value;
+    const gains = document.getElementById("modal-gains").value;
+    const notes = document.getElementById("modal-notes").value;
 
-    try {
-        const resp = await fetch('/api/scraping/start', { method: 'POST' });
-        const data = await resp.json();
-        alert(data.message);
-    } catch(e) {
-        alert('Erreur lors du lancement du scraping');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '🔄 Scraper maintenant';
+    const data = await apiPatch(`/api/missions/${id}/statut`, {
+        statut,
+        gains: gains ? Number(gains) : null,
+        notes: notes || null,
+    });
+
+    if (data && data.ok) {
+        showToast("Statut mis à jour", "success");
+        setTimeout(() => location.reload(), 600);
+    } else {
+        showToast(data?.message || "Erreur statut", "error");
     }
 }
 
-// ── Modal statut ──────────────────────────────────────
-
-function ouvrirStatut(id, statutActuel, titre) {
-    missionIdCourant = id;
-    document.getElementById('modal-titre').textContent = titre;
-    document.getElementById('select-statut').value = statutActuel;
-    document.getElementById('input-gains').value = '';
-    document.getElementById('input-notes').value = '';
-
-    const modal = document.getElementById('modal-statut');
-    modal.style.display = 'flex';
+async function triggerScrape() {
+    const data = await apiPost("/api/scraping/trigger", {});
+    if (data && data.ok) {
+        showToast("Commande envoyée au worker", "success");
+    } else {
+        showToast(data?.message || "Erreur scraping", "error");
+    }
 }
 
-function fermerModal() {
-    document.getElementById('modal-statut').style.display = 'none';
-    missionIdCourant = null;
+async function relanceMission(id) {
+    const data = await apiPost(`/api/missions/${id}/relance`, {});
+    if (data && data.ok) {
+        showToast("Relance envoyée sur Telegram", "success");
+    } else {
+        showToast(data?.message || "Erreur relance", "error");
+    }
 }
 
-async function sauvegarderStatut() {
-    if (!missionIdCourant) return;
+async function deleteMission(id) {
+    if (!confirm("Supprimer cette mission ?")) return;
 
-    const statut = document.getElementById('select-statut').value;
-    const gains  = document.getElementById('input-gains').value;
-    const notes  = document.getElementById('input-notes').value;
+    const data = await apiDelete(`/api/missions/${id}`);
+    if (data && data.ok) {
+        showToast("Mission supprimée", "success");
+        const el = document.getElementById(`mission-${id}`);
+        if (el) el.remove();
+    } else {
+        showToast(data?.message || "Erreur suppression", "error");
+    }
+}
 
-    try {
-        const resp = await fetch(`/api/missions/${missionIdCourant}/statut`, {
-            method:  'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({
-                statut,
-                gains:  gains ? parseFloat(gains) : null,
-                notes:  notes || null,
-            }),
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".btn-open-statut").forEach(btn => {
+        btn.addEventListener("click", () => {
+            openStatutModal(
+                btn.dataset.id,
+                btn.dataset.statut,
+                btn.dataset.title
+            );
         });
-        const data = await resp.json();
+    });
 
-        if (data.ok) {
-            fermerModal();
-            location.reload();
-        } else {
-            alert('Erreur : ' + data.message);
-        }
-    } catch(e) {
-        alert('Erreur réseau');
-    }
-}
+    document.querySelectorAll(".btn-relance").forEach(btn => {
+        btn.addEventListener("click", () => relanceMission(btn.dataset.id));
+    });
 
-// Ferme modal en cliquant dehors
-document.getElementById('modal-statut').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) fermerModal();
-});
+    document.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", () => deleteMission(btn.dataset.id));
+    });
 
-// Raccourci Escape
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') fermerModal();
+    document.getElementById("btn-close-modal")?.addEventListener("click", closeStatutModal);
+    document.getElementById("btn-save-statut")?.addEventListener("click", saveStatut);
+
+    document.getElementById("btn-trigger-scrape")?.addEventListener("click", triggerScrape);
+    document.getElementById("btn-trigger-scrape-empty")?.addEventListener("click", triggerScrape);
+
+    document.getElementById("modal-statut")?.addEventListener("click", (e) => {
+        if (e.target.id === "modal-statut") closeStatutModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeStatutModal();
+    });
 });
 </script>
-
 {% endblock %}
