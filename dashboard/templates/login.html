@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+
 {% block title %}Scorpius — Connexion{% endblock %}
 
 {% block content %}
 <div style="
-    max-width: 400px;
+    max-width: 420px;
     margin: 8vh auto;
     display: flex;
     flex-direction: column;
@@ -15,60 +16,57 @@
             Scorpius
         </h1>
         <p style="color: var(--text2); font-size: 0.9rem;">
-            Agent de prospection freelance
+            Agent de prospection freelance autonome
         </p>
     </div>
 
     <div class="card">
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">
+            Connexion
+        </h2>
+
+        <p style="
+            color: var(--text2);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        ">
+            Cette version utilise un mot de passe administrateur unique.
+            Il est défini dans le fichier <code>.env</code> avec :
+            <br>
+            <code>SCORPIUS_PASSWORD=...</code>
+        </p>
+
         <form method="POST" action="{{ url_for('login') }}">
-            <div style="margin-bottom: 1rem;">
-                <label style="
-                    display: block;
-                    color: var(--text2);
-                    font-size: 0.85rem;
-                    margin-bottom: 0.4rem;
-                ">
-                    Mot de passe
-                </label>
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
                 <input
+                    id="password"
                     type="password"
                     name="password"
                     autofocus
-                    placeholder="••••••••"
-                    style="
-                        width: 100%;
-                        background: var(--bg3);
-                        border: 1px solid var(--border);
-                        border-radius: 8px;
-                        padding: 0.7rem 1rem;
-                        color: var(--text);
-                        font-size: 1rem;
-                        outline: none;
-                    "
+                    required
+                    placeholder="Entrez le mot de passe Scorpius"
                 >
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">
+
+            <button type="submit" class="btn btn-primary btn-full">
                 Se connecter
             </button>
         </form>
 
         <div style="
-            text-align: center;
             margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px solid var(--border);
+            color: var(--text2);
+            font-size: 0.8rem;
+            line-height: 1.5;
         ">
-            <p style="color: var(--text2); font-size: 0.8rem; margin-bottom: 0.75rem;">
-                Ou connectez-vous avec votre voix
-            </p>
-            <button
-                class="btn btn-ghost"
-                style="width: 100%;"
-                disabled
-                title="Disponible au STEP 17"
-            >
-                🎙️ Connexion vocale (bientôt)
-            </button>
+            <strong>Développement :</strong>
+            si aucun mot de passe n’a été défini, utilise :
+            <br>
+            <code>scorpius</code>
         </div>
     </div>
 
