@@ -3,8 +3,8 @@
 
 api:
   # URL de l'API Scorpius (Fly.io après déploiement)
-  # En dev local : http://localhost:5000
-  url: "http://localhost:5000"
+  # En dev local : http://127.0.0.1:8080
+  url: "http://127.0.0.1:8080"
   key: "scorpius-worker-key"   # Même valeur que WORKER_API_KEY dans .env
 
 scraping:
