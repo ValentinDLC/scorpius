@@ -19,3 +19,6 @@ playwright-report/
 # OS
 .DS_Store
 Thumbs.db
+.env
+*.backup
+*.sqlite.backup

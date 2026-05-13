@@ -20,7 +20,7 @@ from playwright.async_api import (
 
 from config.loader import get_config
 from brain.extractor import process_page
-from storage.db import save_mission, init_db
+from storage.db import upsert_mission, init_db
 
 logger = logging.getLogger(__name__)
 
@@ -140,15 +140,18 @@ class ScorpiusScraper:
                 budget_str = _format_budget(m)
                 competences_str = ", ".join(m.get("competences") or [])
 
-                mission_id = save_mission(
-                    plateforme=nom,
-                    titre=m.get("titre", "Sans titre"),
-                    url=m.get("url", url),
-                    budget=budget_str,
-                    description=m.get("description") or "",
-                    competences=competences_str,
-                    score=m.get("score", 0),
-                )
+                mission_dict = {
+                    "plateforme": nom,
+                    "titre": m.get("titre", "Sans titre"),
+                    "url": m.get("url", url),
+                    "budget_min": m.get("budget_min"),
+                    "budget_max": m.get("budget_max"),
+                    "devise": m.get("devise", "EUR"),
+                    "description": m.get("description") or "",
+                    "competences": competences_str,
+                    "score": m.get("score", 0),
+                }
+                mission_id = upsert_mission(mission_dict)
                 if mission_id:
                     nouvelles += 1
                     self._nouvelles_missions.append(m)
@@ -325,12 +328,25 @@ if __name__ == "__main__":
     init_db()
 
     async def main():
+        from notifications.telegram import notify_nouvelles_missions
+        
         scraper = ScorpiusScraper()
         missions = await scraper.run()
+        
         print(f"\n{'━'*50}")
-        print(f"  {len(missions)} nouvelle(s) mission(s)")
+        print(f"  {len(missions)} nouvelle(s) mission(s) traitée(s)")
         for m in missions:
-            print(f"  [{m.get('score', 0):3d}/100] {m.get('titre', '')[:55]}")
+            # Sécurité float -> int
+            score = int(m.get('score', 0))
+            print(f"  [{score:3d}/100] {m.get('titre', '')[:55]}")
         print(f"{'━'*50}")
+
+        # ─── NOTIFICATION TELEGRAM AUTOMATIQUE ───
+        bonnes_missions = [m for m in missions if int(m.get("score", 0)) >= 50]
+        if bonnes_missions:
+            print(f"  [Telegram] Envoi auto de {len(bonnes_missions)} mission(s) pertinente(s)...")
+            await notify_nouvelles_missions(bonnes_missions)
+        else:
+            print("  [Telegram] Aucune mission > 50/100 à notifier pour ce cycle.")
 
     asyncio.run(main())
