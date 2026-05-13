@@ -22,3 +22,4 @@ Thumbs.db
 .env
 *.backup
 *.sqlite.backup
+cookies.txt
