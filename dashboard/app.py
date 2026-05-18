@@ -635,19 +635,128 @@ def server_error(e):
 # API — CONNEXION PLATEFORMES
 # ══════════════════════════════════════════════════════════════════════════════
 
-PLATEFORMES_LOGIN_URLS = {
-    "codeur":     "https://www.codeur.com/login",
-    "malt":       "https://www.malt.fr/login",
-    "upwork":     "https://www.upwork.com/ab/account-security/login",
+
+DEFAULT_PLATEFORMES_LOGIN_URLS = {
+    "codeur": "https://www.codeur.com/login",
+    "malt": "https://www.malt.fr/login",
+    "upwork": "https://www.upwork.com/ab/account-security/login",
     "freelancer": "https://www.freelancer.com/login",
-    "free-work":  "https://www.free-work.com/fr/login",
+    "free-work": "https://www.free-work.com/fr/login",
 }
 
+
+def _plateformes_config_list():
+    cfg = get_config()
+    plateformes = None
+
+    if hasattr(cfg, "get"):
+        try:
+            plateformes = cfg.get("plateformes", None)
+        except Exception:
+            plateformes = None
+
+    if plateformes is None:
+        plateformes = getattr(cfg, "plateformes", None)
+
+    if plateformes is None:
+        plateformes = getattr(cfg, "plateformes_actives", [])
+
+    if callable(plateformes):
+        plateformes = plateformes()
+
+    return plateformes or []
+
+
+def _plateforme_value(item, key, default=None):
+    if isinstance(item, dict):
+        return item.get(key, default)
+    return getattr(item, key, default)
+
+
+def _slug_from_platform_url(url: str) -> str:
+    from urllib.parse import urlparse
+
+    host = (urlparse(url).netloc or "").lower().replace("www.", "")
+    for suffix in (".com", ".fr", ".io", ".net", ".co", ".eu"):
+        if host.endswith(suffix):
+            host = host[:-len(suffix)]
+            break
+    return host.replace(".", "-").strip("-")
+
+
+def _domain_from_platform_url(url: str) -> str:
+    from urllib.parse import urlparse
+    return (urlparse(url).netloc or "").lower().replace("www.", "")
+
+
+def _get_plateforme_config(plateforme: str):
+    for item in _plateformes_config_list():
+        slug = _plateforme_value(item, "slug", "")
+        if slug and str(slug).strip().lower() == plateforme:
+            return item
+
+        url = _plateforme_value(item, "url", "")
+        if url and _slug_from_platform_url(url) == plateforme:
+            return item
+
+    return None
+
+
+def _get_plateforme_label(plateforme: str) -> str:
+    item = _get_plateforme_config(plateforme)
+    if item:
+        label = _plateforme_value(item, "label", "")
+        if label:
+            return str(label)
+    return plateforme.replace("-", " ").title()
+
+
+def _get_plateforme_login_url(plateforme: str) -> str:
+    item = _get_plateforme_config(plateforme)
+    if item:
+        login_url = _plateforme_value(item, "login_url", "")
+        if login_url:
+            return str(login_url)
+
+        url = _plateforme_value(item, "url", "")
+        if url:
+            return str(url)
+
+    return DEFAULT_PLATEFORMES_LOGIN_URLS.get(plateforme, "")
+
+
+def _get_plateforme_domain(plateforme: str) -> str:
+    item = _get_plateforme_config(plateforme)
+    if item:
+        domain = _plateforme_value(item, "domain", "")
+        if domain:
+            return str(domain).lower().replace("www.", "")
+
+        login_url = _plateforme_value(item, "login_url", "")
+        if login_url:
+            return _domain_from_platform_url(login_url)
+
+        url = _plateforme_value(item, "url", "")
+        if url:
+            return _domain_from_platform_url(url)
+
+    login_url = DEFAULT_PLATEFORMES_LOGIN_URLS.get(plateforme, "")
+    if login_url:
+        return _domain_from_platform_url(login_url)
+
+    return ""
+
+
+def _get_plateforme_auth_mode(plateforme: str) -> str:
+    item = _get_plateforme_config(plateforme)
+    if item:
+        return str(_plateforme_value(item, "auth_mode", "browser_cookies") or "browser_cookies")
+    return "browser_cookies"
 
 @app.route("/api/plateformes/<plateforme>/login-popup")
 @login_required
 def api_plateforme_login_popup(plateforme: str):
-    url = PLATEFORMES_LOGIN_URLS.get(plateforme)
+    url = _get_plateforme_login_url(plateforme)
     if not url:
         return err("Plateforme non supportée", 404)
     return render_template(
@@ -663,7 +772,7 @@ def api_plateforme_login_popup(plateforme: str):
 def api_sauvegarder_session(plateforme: str):
     import subprocess
     def _save():
-        url = PLATEFORMES_LOGIN_URLS.get(plateforme, "")
+        url = _get_plateforme_login_url(plateforme)
         if url:
             subprocess.run(["python3", "worker.py", "--login", url])
     threading.Thread(target=_save, daemon=True).start()
@@ -749,7 +858,7 @@ def _get_plateforme_domain(plateforme: str) -> str:
         if url:
             return _domain_from_platform_url(url)
 
-    login_url = PLATEFORMES_LOGIN_URLS.get(plateforme, "")
+    login_url = _get_plateforme_login_url(plateforme)
     if login_url:
         return _domain_from_platform_url(login_url)
 

@@ -94,7 +94,7 @@
                     </div>
 
                     <div style="font-size: 0.75rem; color: var(--text2); margin-bottom: 0.5rem;">
-                        Tier {{ p.tier or 1 }}
+                        Tier {{ p.tier or 1 }} • {{ p.auth_mode or "browser_cookies" }}{% if p.domain %} • {{ p.domain }}{% endif %}
                     </div>
 
                     <span class="badge" id="status-{{ nom }}">
@@ -117,6 +117,16 @@
                         style="padding: 0.55rem 0.8rem; font-size: 0.85rem;"
                     >
                         🔐 Connecter
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn"
+                        id="btn-import-{{ nom }}"
+                        onclick="importerCookiesPlateforme('{{ nom }}')"
+                        style="padding: 0.55rem 0.8rem; font-size: 0.85rem;"
+                    >
+                        🍪 Importer cookies
                     </button>
                 </div>
             </div>
@@ -217,6 +227,32 @@ window.verifierStatutPlateforme = async function(nom) {
     } catch (e) {
         console.error("Erreur statut plateforme", nom, e);
         setPlateformeBadge(nom, "⚠️ Erreur statut", "badge");
+    }
+};
+
+
+window.importerCookiesPlateforme = async function(nom, browser = "chrome") {
+    try {
+        setResult(`Import des cookies ${nom}...`, "info");
+
+        const resp = await fetch(`/api/plateformes/${nom}/importer-cookies`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ browser }),
+        });
+
+        const data = await resp.json();
+
+        if (!data?.ok) {
+            setResult(data?.message || `Import cookies impossible pour ${nom}`, "error");
+            return;
+        }
+
+        await window.verifierStatutPlateforme(nom);
+        setResult(`Cookies importés pour ${nom}`, "success");
+    } catch (e) {
+        console.error("Erreur import cookies", nom, e);
+        setResult(`Erreur import cookies pour ${nom}`, "error");
     }
 };
 
