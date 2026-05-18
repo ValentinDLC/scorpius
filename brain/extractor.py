@@ -205,7 +205,17 @@ def _parse_json_response(raw):
     raise ValueError(f"Impossible de parser le JSON du LLM.\nRéponse brute : {raw[:200]}")
 
 
-def extract_missions_from_html(html, plateforme, llm=None, max_chars=2500):
+def extract_missions_from_html(html, plateforme, llm=None, max_chars=20000):
+    if str(plateforme).lower() == "codeur":
+        try:
+            from brain.codeur_dom import extract_codeur_projects_from_html
+            dom_missions = extract_codeur_projects_from_html(html)
+            if dom_missions:
+                logger.info(f"→ {len(dom_missions)} mission(s) extraite(s) via DOM pour {plateforme}")
+                return dom_missions
+        except Exception as e:
+            logger.warning(f"Extracteur DOM Codeur indisponible: {e}")
+
     if llm is None:
         llm = LLMClient()
     html_clean = _clean_html(html)

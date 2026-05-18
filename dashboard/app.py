@@ -686,6 +686,106 @@ def api_plateforme_status(plateforme: str):
     return ok({"connected": False})
 
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _plateformes_config_list():
+    cfg = get_config()
+    plateformes = None
+
+    if hasattr(cfg, "get"):
+        try:
+            plateformes = cfg.get("plateformes", None)
+        except Exception:
+            plateformes = None
+
+    if plateformes is None:
+        plateformes = getattr(cfg, "plateformes", None)
+
+    if plateformes is None:
+        plateformes = getattr(cfg, "plateformes_actives", [])
+
+    if callable(plateformes):
+        plateformes = plateformes()
+
+    return plateformes or []
+
+
+def _plateforme_value(item, key, default=None):
+    if isinstance(item, dict):
+        return item.get(key, default)
+    return getattr(item, key, default)
+
+
+def _slug_from_platform_url(url: str) -> str:
+    from urllib.parse import urlparse
+
+    host = (urlparse(url).netloc or "").lower().replace("www.", "")
+    for suffix in (".com", ".fr", ".io", ".net", ".co", ".eu"):
+        if host.endswith(suffix):
+            host = host[:-len(suffix)]
+            break
+    return host.replace(".", "-").strip("-")
+
+
+def _domain_from_platform_url(url: str) -> str:
+    from urllib.parse import urlparse
+    return (urlparse(url).netloc or "").lower().replace("www.", "")
+
+
+def _get_plateforme_config(plateforme: str):
+    for item in _plateformes_config_list():
+        url = _plateforme_value(item, "url", "")
+        if url and _slug_from_platform_url(url) == plateforme:
+            return item
+    return None
+
+
+def _get_plateforme_domain(plateforme: str) -> str:
+    item = _get_plateforme_config(plateforme)
+    if item:
+        domain = _plateforme_value(item, "domain", "")
+        if domain:
+            return str(domain).lower().replace("www.", "")
+        url = _plateforme_value(item, "url", "")
+        if url:
+            return _domain_from_platform_url(url)
+
+    login_url = PLATEFORMES_LOGIN_URLS.get(plateforme, "")
+    if login_url:
+        return _domain_from_platform_url(login_url)
+
+    return ""
+
+
+@app.route("/api/plateformes/<plateforme>/importer-cookies", methods=["POST"])
+@login_required
+def api_importer_cookies_plateforme(plateforme: str):
+    import subprocess
+
+    payload = request.get_json(silent=True) or {}
+    browser = str(payload.get("browser", "auto")).strip().lower() or "auto"
+    domain = _get_plateforme_domain(plateforme)
+
+    if not domain:
+        return err("Domaine plateforme introuvable", 404)
+
+    cmd = [
+        "python3",
+        "tools/import_browser_session.py",
+        "--slug", plateforme,
+        "--domain", domain,
+        "--browser", browser,
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    output = (result.stdout or result.stderr or "").strip()
+
+    if result.returncode != 0:
+        return err(output or f"Import cookies impossible pour {plateforme}", 400)
+
+    return ok(
+        {"plateforme": plateforme, "browser": browser, "domain": domain},
+        output or f"Session {plateforme} importée",
+    )
 # LANCEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
