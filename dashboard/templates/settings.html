@@ -69,34 +69,56 @@
     </h2>
 
     {% if plateformes %}
-        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
             {% for p in plateformes %}
-            <div style="
+            {% set nom = p.url.split('/')[2] | replace('www.', '') | replace('.com', '') | replace('.fr', '') %}
+            <div class="plateforme-item" data-plateforme="{{ nom }}" style="
                 display: flex;
                 justify-content: space-between;
+                align-items: center;
                 gap: 1rem;
-                border-bottom: 1px solid var(--border);
-                padding-bottom: 0.6rem;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 0.9rem;
             ">
-                <div style="min-width: 0;">
+                <div style="min-width: 0; flex: 1;">
                     <div style="
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
-                        font-size: 0.85rem;
+                        font-size: 0.9rem;
+                        font-weight: 600;
+                        margin-bottom: 0.2rem;
                     ">
                         {{ p.url }}
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text2);">
+
+                    <div style="font-size: 0.75rem; color: var(--text2); margin-bottom: 0.5rem;">
                         Tier {{ p.tier or 1 }}
                     </div>
+
+                    <span class="badge" id="status-{{ nom }}">
+                        ⏳ Vérification...
+                    </span>
                 </div>
 
-                {% if p.actif %}
-                    <span class="badge badge-en_cours">Active</span>
-                {% else %}
-                    <span class="badge badge-refusee">Inactive</span>
-                {% endif %}
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
+                    {% if p.actif %}
+                        <span class="badge badge-en_cours">Active</span>
+                    {% else %}
+                        <span class="badge badge-refusee">Inactive</span>
+                    {% endif %}
+
+                    <button
+                        type="button"
+                        class="btn"
+                        id="btn-connect-{{ nom }}"
+                        onclick="connecterPlateforme('{{ nom }}')"
+                        style="padding: 0.55rem 0.8rem; font-size: 0.85rem;"
+                    >
+                        🔐 Connecter
+                    </button>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -106,7 +128,6 @@
         </p>
     {% endif %}
 </section>
-
 <section class="card" style="margin-bottom: 1rem;">
     <h2 style="font-size: 1rem; margin-bottom: 1rem;">
         Worker & système
@@ -160,15 +181,67 @@
     </ul>
 </section>
 
-{% endblock %}
-
-{% block extra_js %}
 <script>
 function setResult(message, type = "info") {
     const el = document.getElementById("settings-result");
-    el.textContent = message;
-    showToast(message, type);
+    if (el) el.textContent = message;
+    if (typeof showToast === "function") {
+        showToast(message, type);
+    } else {
+        console.log("[settings]", type, message);
+    }
 }
+
+function setPlateformeBadge(nom, text, className = "badge") {
+    const badge = document.getElementById(`status-${nom}`);
+    if (!badge) return;
+    badge.textContent = text;
+    badge.className = className;
+}
+
+window.verifierStatutPlateforme = async function(nom) {
+    try {
+        const data = await apiGet(`/api/plateformes/${nom}/status`);
+        const btn = document.getElementById(`btn-connect-${nom}`);
+
+        if (data?.ok && data.data?.connected) {
+            const label = data.data.expires_soon
+                ? "✅ Connecté • expire bientôt"
+                : "✅ Connecté";
+            setPlateformeBadge(nom, label, "badge badge-en_cours");
+            if (btn) btn.textContent = "🔄 Reconnecter";
+        } else {
+            setPlateformeBadge(nom, "❌ Non connecté", "badge badge-refusee");
+            if (btn) btn.textContent = "🔐 Connecter";
+        }
+    } catch (e) {
+        console.error("Erreur statut plateforme", nom, e);
+        setPlateformeBadge(nom, "⚠️ Erreur statut", "badge");
+    }
+};
+
+window.connecterPlateforme = function(nom) {
+    const popup = window.open(
+        `/api/plateformes/${nom}/login-popup`,
+        `login_${nom}`,
+        "width=700,height=900,scrollbars=yes,resizable=yes"
+    );
+
+    if (!popup) {
+        alert("Popup bloquée. Autorise les popups pour Scorpius.");
+        return;
+    }
+
+    setResult(`Popup de connexion ouverte pour ${nom}`, "info");
+
+    const interval = setInterval(async () => {
+        if (popup.closed) {
+            clearInterval(interval);
+            await window.verifierStatutPlateforme(nom);
+            setResult(`Vérification de la session ${nom} terminée`, "success");
+        }
+    }, 800);
+};
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-trigger-scrape-settings")?.addEventListener("click", async () => {
@@ -188,6 +261,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data?.ok) setResult("Message Telegram envoyé", "success");
         else setResult(data?.message || "Erreur Telegram", "error");
     });
+
+    document.querySelectorAll(".plateforme-item[data-plateforme]").forEach((el) => {
+        const nom = el.dataset.plateforme;
+        if (nom) window.verifierStatutPlateforme(nom);
+    });
 });
 </script>
+
 {% endblock %}
