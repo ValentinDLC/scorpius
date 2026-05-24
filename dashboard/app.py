@@ -25,6 +25,9 @@ from storage.db import (
     update_statut_mission, delete_mission, upsert_mission,
 )
 
+from dashboard.prospects_routes import register_prospects_routes
+from storage.prospects import init_prospects_db
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -95,6 +98,11 @@ def run_async(coro):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROSPECTS — SPRINT 1
+# ══════════════════════════════════════════════════════════════════════════════
+register_prospects_routes(app, login_required, ok, err, run_async)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -848,23 +856,6 @@ def _get_plateforme_config(plateforme: str):
     return None
 
 
-def _get_plateforme_domain(plateforme: str) -> str:
-    item = _get_plateforme_config(plateforme)
-    if item:
-        domain = _plateforme_value(item, "domain", "")
-        if domain:
-            return str(domain).lower().replace("www.", "")
-        url = _plateforme_value(item, "url", "")
-        if url:
-            return _domain_from_platform_url(url)
-
-    login_url = _get_plateforme_login_url(plateforme)
-    if login_url:
-        return _domain_from_platform_url(login_url)
-
-    return ""
-
-
 @app.route("/api/plateformes/<plateforme>/importer-cookies", methods=["POST"])
 @login_required
 def api_importer_cookies_plateforme(plateforme: str):
@@ -900,6 +891,7 @@ def api_importer_cookies_plateforme(plateforme: str):
 
 def create_app():
     init_db()
+    init_prospects_db()
     return app
 
 
@@ -914,6 +906,7 @@ if __name__ == "__main__":
     port = cfg.dashboard.get("port", 5000)
 
     init_db()
+    init_prospects_db()
 
     print(f"""
 ╔══════════════════════════════════════════╗

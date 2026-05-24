@@ -4,6 +4,8 @@ run.py - Scorpius launcher
 """
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 # Ajouter le dossier racine au PYTHONPATH
 ROOT = Path(__file__).parent
@@ -12,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 if __name__ == "__main__":
     from dashboard.app import app
     from storage.db import init_db
+    from storage.prospects import init_prospects_db
     from config.loader import get_config
     import logging
 
@@ -22,6 +25,7 @@ if __name__ == "__main__":
 
     # Init DB
     init_db()
+    init_prospects_db()
 
     # Config
     try:
