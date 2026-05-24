@@ -185,7 +185,6 @@ def voice_login():
 
 @app.route("/")
 @app.route("/missions")
-@app.route("/prospects")
 @login_required
 def missions():
     statut    = request.args.get("statut", "")
@@ -213,6 +212,14 @@ def missions():
         stats             = get_stats_gains(),
     )
 
+
+
+
+@app.route("/prospects")
+@login_required
+def prospects():
+    """Page prospects — Google Places cold calling (Sprint 1)"""
+    return render_template("prospects.html", theme=get_theme())
 
 @app.route("/stats")
 @login_required
