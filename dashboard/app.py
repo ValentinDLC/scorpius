@@ -185,6 +185,7 @@ def voice_login():
 
 @app.route("/")
 @app.route("/missions")
+@app.route("/prospects")
 @login_required
 def missions():
     statut    = request.args.get("statut", "")

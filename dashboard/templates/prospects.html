@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Prospects — Scorpius{% endblock %}
+
+{% block content %}
+<style>
+.prospects-container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+.prospects-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+.prospects-header h1 { font-size: 1.5rem; font-weight: bold; }
+.filters-card { background: var(--bg2, #f5f5f5); border: 1px solid var(--border, #e0e0e0); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+.filters-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+.prospect-card { background: var(--bg2, #fff); border: 1px solid var(--border, #e0e0e0); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; cursor: pointer; transition: box-shadow 0.2s; }
+.prospect-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.prospect-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.prospect-info { flex: 1; }
+.prospect-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; }
+.prospect-address { color: var(--text2, #666); font-size: 0.9rem; margin-bottom: 0.5rem; }
+.prospect-meta { display: flex; gap: 1rem; font-size: 0.85rem; flex-wrap: wrap; }
+.prospect-audit { text-align: right; }
+.prospect-audit-icons { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.badge-success { background: #d4edda; color: #155724; }
+.badge-warning { background: #fff3cd; color: #856404; }
+.badge-danger { background: #f8d7da; color: #721c24; }
+.badge-info { background: #d1ecf1; color: #0c5460; }
+.btn { display: inline-block; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+.btn-primary { background: #7c5cbf; color: white; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-ghost { background: transparent; border: 1px solid var(--border, #e0e0e0); color: var(--text, #333); }
+.btn-sm { padding: 0.35rem 0.65rem; font-size: 0.85rem; }
+.btn-full { width: 100%; }
+.input { padding: 0.5rem; border: 1px solid var(--border, #e0e0e0); border-radius: 6px; background: var(--bg, #fff); color: var(--text, #333); min-width: 150px; }
+.modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal.hidden { display: none; }
+.modal-content { background: var(--bg2, #fff); border-radius: 12px; padding: 1.5rem; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+.modal-lg { max-width: 700px; }
+.label { display: block; font-size: 0.85rem; color: var(--text2, #666); margin-bottom: 0.25rem; }
+.space-y-4 { }
+.space-y-4 > * + * { margin-top: 1rem; }
+.grid { display: grid; gap: 1rem; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+.text-muted { color: var(--text2, #666); }
+.text-success { color: #28a745; }
+.text-danger { color: #dc3545; }
+.text-warning { color: #ffc107; }
+.spinner { border: 3px solid var(--border, #e0e0e0); border-top: 3px solid #7c5cbf; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 3rem 1rem; }
+.empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
+@media (max-width: 768px) { .grid-cols-2, .grid-cols-4 { grid-template-columns: 1fr; } .prospect-header { flex-direction: column; gap: 1rem; } .prospect-audit { text-align: left; } }
+</style>
+
+<div class="prospects-container">
+    <div class="prospects-header">
+        <h1>🎯 Prospects</h1>
+        <button onclick="openSearchModal()" class="btn btn-primary">🔍 Nouvelle recherche</button>
+    </div>
+
+    <div class="filters-card">
+        <div class="filters-row">
+            <select id="filtre-statut" class="input" onchange="loadProspects()">
+                <option value="">Tous les statuts</option>
+                <option value="a_appeler">📞 À appeler</option>
+                <option value="appele">✅ Appelé</option>
+                <option value="relance">🔄 Relance</option>
+                <option value="gagne">🎉 Gagné</option>
+                <option value="perdu">❌ Perdu</option>
+            </select>
+            <select id="filtre-score" class="input" onchange="loadProspects()">
+                <option value="">Tous les scores</option>
+                <option value="high">🟢 Excellent (≥60)</option>
+                <option value="medium">🟡 Moyen (40-59)</option>
+                <option value="low">🔴 Faible (<40)</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="prospects-list" class="space-y-4">
+        <div class="empty-state">
+            <div class="empty-state-icon">⏳</div>
+            <p class="text-muted">Chargement des prospects...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal recherche -->
+<div id="search-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="prospects-header">
+            <h2>🔍 Rechercher des prospects</h2>
+            <button onclick="closeSearchModal()" class="btn btn-ghost">✕</button>
+        </div>
+        <form onsubmit="searchProspects(event)" class="space-y-4">
+            <div>
+                <label class="label">Secteur d'activité</label>
+                <input type="text" id="search-secteur" class="input" style="width:100%" placeholder="ex: restaurants, boulangeries..." required>
+            </div>
+            <div>
+                <label class="label">Ville</label>
+                <input type="text" id="search-ville" class="input" style="width:100%" placeholder="ex: Paris, Lyon, Meaux..." required>
+            </div>
+            <div class="grid grid-cols-2">
+                <div>
+                    <label class="label">Rayon (km)</label>
+                    <input type="number" id="search-rayon" class="input" style="width:100%" value="10" min="1" max="50">
+                </div>
+                <div>
+                    <label class="label">Nombre max</label>
+                    <input type="number" id="search-limit" class="input" style="width:100%" value="10" min="1" max="20">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">🚀 Lancer la recherche</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal détail prospect -->
+<div id="prospect-modal" class="modal hidden">
+    <div class="modal-content modal-lg">
+        <div class="prospects-header">
+            <h2 id="prospect-nom">📋 Détail</h2>
+            <button onclick="closeProspectModal()" class="btn btn-ghost">✕</button>
+        </div>
+        <div id="prospect-detail" class="space-y-4"></div>
+        <div class="grid grid-cols-2 space-y-4" style="margin-top:1.5rem;">
+            <a id="btn-call" href="#" class="btn btn-primary btn-full">📞 Appeler</a>
+            <a id="btn-maps" href="#" target="_blank" class="btn btn-secondary btn-full">🗺️ Maps</a>
+        </div>
+        <div class="grid grid-cols-4 space-y-4" style="margin-top:0.5rem;">
+            <button onclick="updateStatut('appele')" class="btn btn-sm btn-primary">✅ Appelé</button>
+            <button onclick="updateStatut('relance')" class="btn btn-sm btn-warning">🔄 Relance</button>
+            <button onclick="updateStatut('gagne')" class="btn btn-sm btn-success">🎉 Gagné</button>
+            <button onclick="updateStatut('perdu')" class="btn btn-sm btn-danger">❌ Perdu</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentProspectId = null;
+
+async function loadProspects() {
+    const statut = document.getElementById('filtre-statut').value;
+    let url = '/api/prospects?limit=50';
+    if (statut) url += '&statut=' + statut;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const container = document.getElementById('prospects-list');
+        if (!data.ok || !data.data || data.data.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><p class="text-muted">Aucun prospect trouvé.</p><button onclick="openSearchModal()" class="btn btn-primary" style="margin-top:1rem;">🔍 Première recherche</button></div>';
+            return;
+        }
+        container.innerHTML = data.data.map(function(p) {
+            return '<div class="prospect-card" onclick="openProspectDetail(' + p.id + ')"><div class="prospect-header"><div class="prospect-info"><div class="prospect-name">' + escapeHtml(p.nom) + ' <span class="badge badge-' + getScoreClass(p.score_audit) + '">' + p.score_audit + '/100</span> <span class="badge badge-' + getStatutClass(p.statut) + '">' + getStatutLabel(p.statut) + '</span></div><div class="prospect-address">📍 ' + escapeHtml(p.adresse) + '</div><div class="prospect-meta">' + (p.telephone ? '<span>📞 ' + escapeHtml(p.telephone) + '</span>' : '') + (p.url_site ? '<span>🌐 <a href="' + escapeHtml(p.url_site) + '" target="_blank">Site</a></span>' : '<span class="text-warning">⚠️ Sans site</span>') + '</div></div><div class="prospect-audit"><div class="text-muted" style="font-size:0.75rem;">Audit</div><div class="prospect-audit-icons"><span title="Mobile" class="' + (p.audit_mobile ? 'text-success' : 'text-danger') + '">📱</span><span title="Performance" class="' + (p.audit_performance > 50 ? 'text-success' : 'text-danger') + '">⚡</span><span title="SEO" class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">🔍</span><span title="GMB" class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '">📍</span></div></div></div></div>';
+        }).join('');
+    } catch (err) {
+        console.error(err);
+        document.getElementById('prospects-list').innerHTML = '<div class="empty-state"><p class="text-danger">Erreur de chargement</p></div>';
+    }
+}
+
+async function openProspectDetail(id) {
+    currentProspectId = id;
+    const res = await fetch('/api/prospects/' + id);
+    const data = await res.json();
+    if (!data.ok) return;
+    const p = data.data;
+    document.getElementById('prospect-nom').textContent = p.nom;
+    document.getElementById('prospect-detail').innerHTML = '<div class="grid grid-cols-2"><div><div class="label">Adresse</div><div>' + escapeHtml(p.adresse) + '</div></div><div><div class="label">Téléphone</div><div>' + (p.telephone || 'Non disponible') + '</div></div><div><div class="label">Site web</div><div>' + (p.url_site ? '<a href="' + escapeHtml(p.url_site) + '" target="_blank">' + escapeHtml(p.url_site) + '</a>' : '<span class="text-warning">Aucun</span>') + '</div></div><div><div class="label">Secteur</div><div>' + escapeHtml(p.secteur || 'N/A') + '</div></div></div><div class="filters-card" style="margin-top:1rem;"><h4 style="margin-bottom:0.75rem;">📊 Audit (Score: ' + p.score_audit + '/100)</h4><div class="grid grid-cols-2"><div><span>📱 Mobile</span> <span class="' + (p.audit_mobile ? 'text-success' : 'text-danger') + '">' + (p.audit_mobile ? 'OK' : '❌') + '</span></div><div><span>⚡ Performance</span> <span class="' + (p.audit_performance > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_performance + '</span></div><div><span>🔍 SEO</span> <span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_seo + '</span></div><div><span>📍 GMB</span> <span class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '">' + (p.audit_gmb ? 'OK' : '❌') + '</span></div></div></div>';
+    document.getElementById('btn-call').href = p.telephone ? 'tel:' + p.telephone : '#';
+    document.getElementById('btn-maps').href = p.google_maps_url || '#';
+    document.getElementById('prospect-modal').classList.remove('hidden');
+}
+
+async function searchProspects(e) {
+    e.preventDefault();
+    const secteur = document.getElementById('search-secteur').value;
+    const ville = document.getElementById('search-ville').value;
+    const limit = document.getElementById('search-limit').value;
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = '⏳ Recherche...';
+    try {
+        const res = await fetch('/api/prospects/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: secteur + ' ' + ville, limit: parseInt(limit) })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            alert('✅ ' + data.message);
+            closeSearchModal();
+            loadProspects();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    } catch (err) {
+        alert('❌ Erreur réseau');
+    }
+    btn.disabled = false;
+    btn.textContent = '🚀 Lancer la recherche';
+}
+
+async function updateStatut(statut) {
+    if (!currentProspectId) return;
+    const res = await fetch('/api/prospects/' + currentProspectId + '/statut', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: statut })
+    });
+    const data = await res.json();
+    if (data.ok) {
+        alert('✅ Statut mis à jour');
+        closeProspectModal();
+        loadProspects();
+    } else {
+        alert('❌ ' + data.message);
+    }
+}
+
+function openSearchModal() { document.getElementById('search-modal').classList.remove('hidden'); }
+function closeSearchModal() { document.getElementById('search-modal').classList.add('hidden'); }
+function closeProspectModal() { document.getElementById('prospect-modal').classList.add('hidden'); currentProspectId = null; }
+function getScoreClass(s) { return s >= 60 ? 'success' : (s >= 40 ? 'warning' : 'danger'); }
+function getStatutClass(s) { return { 'a_appeler': 'info', 'appele': 'success', 'relance': 'warning', 'gagne': 'success', 'perdu': 'danger' }[s] || 'info'; }
+function getStatutLabel(s) { return { 'a_appeler': 'À appeler', 'appele': 'Appelé', 'relance': 'Relance', 'gagne': 'Gagné', 'perdu': 'Perdu' }[s] || s; }
+function escapeHtml(t) { if (!t) return ''; return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.addEventListener('DOMContentLoaded', loadProspects);
+</script>
+{% endblock %}
