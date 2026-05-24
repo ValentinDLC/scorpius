@@ -536,3 +536,238 @@ def _row_to_dict(row) -> dict:
                 d[field] = d[field].isoformat()
 
     return d
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCORPIUS INBOX — Notifications internes
+# ══════════════════════════════════════════════════════════════════════════════
+
+def ensure_notifications_table():
+    """
+    Crée la table notifications si elle n'existe pas.
+    Compatible SQLite fallback + PostgreSQL Supabase.
+    """
+    using_sqlite = globals().get("_using_sqlite", True)
+
+    with get_conn() as conn:
+        if using_sqlite:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type        TEXT NOT NULL,
+                    title       TEXT NOT NULL,
+                    body        TEXT,
+                    source      TEXT DEFAULT 'scorpius',
+                    link        TEXT,
+                    read_at     TEXT,
+                    created_at  TEXT DEFAULT (datetime('now')),
+                    data_json   TEXT DEFAULT '{}'
+                )
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_notifications_read
+                ON notifications(read_at)
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_notifications_created
+                ON notifications(created_at)
+            """))
+        else:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id          SERIAL PRIMARY KEY,
+                    type        TEXT NOT NULL,
+                    title       TEXT NOT NULL,
+                    body        TEXT,
+                    source      TEXT DEFAULT 'scorpius',
+                    link        TEXT,
+                    read_at     TIMESTAMPTZ,
+                    created_at  TIMESTAMPTZ DEFAULT NOW(),
+                    data_json   JSONB DEFAULT '{}'
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_notifications_read
+                ON notifications(read_at);
+
+                CREATE INDEX IF NOT EXISTS idx_notifications_created
+                ON notifications(created_at DESC);
+            """))
+
+
+def create_notification(
+    type: str,
+    title: str,
+    body: str = "",
+    source: str = "scorpius",
+    link: str = "",
+    data: Optional[dict] = None,
+) -> Optional[int]:
+    """
+    Crée une notification interne Scorpius.
+
+    Returns:
+        id de la notification créée
+    """
+    ensure_notifications_table()
+    using_sqlite = globals().get("_using_sqlite", True)
+
+    payload = {
+        "type": type,
+        "title": title,
+        "body": body,
+        "source": source,
+        "link": link,
+        "data_json": json.dumps(data or {}),
+    }
+
+    with get_conn() as conn:
+        if using_sqlite:
+            result = conn.execute(text("""
+                INSERT INTO notifications (
+                    type, title, body, source, link, data_json
+                ) VALUES (
+                    :type, :title, :body, :source, :link, :data_json
+                )
+            """), payload)
+            return result.lastrowid
+        else:
+            result = conn.execute(text("""
+                INSERT INTO notifications (
+                    type, title, body, source, link, data_json
+                ) VALUES (
+                    :type, :title, :body, :source, :link, :data_json
+                )
+                RETURNING id
+            """), payload)
+            row = result.fetchone()
+            return row[0] if row else None
+
+
+def get_notifications(
+    unread_only: bool = False,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[dict]:
+    """
+    Liste les notifications internes.
+    """
+    ensure_notifications_table()
+
+    conditions = []
+    params = {
+        "limit": limit,
+        "offset": offset,
+    }
+
+    if unread_only:
+        conditions.append("read_at IS NULL")
+
+    where = ""
+    if conditions:
+        where = "WHERE " + " AND ".join(conditions)
+
+    with get_conn() as conn:
+        rows = conn.execute(text(f"""
+            SELECT
+                id, type, title, body, source, link,
+                read_at, created_at, data_json
+            FROM notifications
+            {where}
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :offset
+        """), params).fetchall()
+
+    return [_notification_row_to_dict(r) for r in rows]
+
+
+def get_unread_notifications_count() -> int:
+    """
+    Nombre de notifications non lues.
+    """
+    ensure_notifications_table()
+
+    with get_conn() as conn:
+        row = conn.execute(text("""
+            SELECT COUNT(*) FROM notifications
+            WHERE read_at IS NULL
+        """)).fetchone()
+
+    return int(row[0]) if row else 0
+
+
+def mark_notification_read(notification_id: int):
+    """
+    Marque une notification comme lue.
+    """
+    ensure_notifications_table()
+    using_sqlite = globals().get("_using_sqlite", True)
+
+    with get_conn() as conn:
+        if using_sqlite:
+            conn.execute(text("""
+                UPDATE notifications
+                SET read_at = datetime('now')
+                WHERE id = :id
+            """), {"id": notification_id})
+        else:
+            conn.execute(text("""
+                UPDATE notifications
+                SET read_at = NOW()
+                WHERE id = :id
+            """), {"id": notification_id})
+
+
+def mark_all_notifications_read():
+    """
+    Marque toutes les notifications comme lues.
+    """
+    ensure_notifications_table()
+    using_sqlite = globals().get("_using_sqlite", True)
+
+    with get_conn() as conn:
+        if using_sqlite:
+            conn.execute(text("""
+                UPDATE notifications
+                SET read_at = datetime('now')
+                WHERE read_at IS NULL
+            """))
+        else:
+            conn.execute(text("""
+                UPDATE notifications
+                SET read_at = NOW()
+                WHERE read_at IS NULL
+            """))
+
+
+def delete_notification(notification_id: int):
+    """
+    Supprime une notification.
+    """
+    ensure_notifications_table()
+
+    with get_conn() as conn:
+        conn.execute(text("""
+            DELETE FROM notifications
+            WHERE id = :id
+        """), {"id": notification_id})
+
+
+def _notification_row_to_dict(row) -> dict:
+    """
+    Convertit une notification SQLAlchemy Row en dict propre.
+    """
+    if row is None:
+        return {}
+
+    d = dict(row._mapping)
+
+    if isinstance(d.get("data_json"), str):
+        try:
+            d["data_json"] = json.loads(d["data_json"])
+        except Exception:
+            d["data_json"] = {}
+
+    for field in ("read_at", "created_at"):
+        if d.get(field) is not None and hasattr(d[field], "isoformat"):
+            d[field] = d[field].isoformat()
+
+    return d

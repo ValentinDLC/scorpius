@@ -14,6 +14,7 @@
     {% if session.get('authenticated') %}
     <ul class="nav-desktop">
         <li><a href="{{ url_for('missions') }}">Missions</a></li>
+        <li><a href="{{ url_for('prospects') }}">🎯 Prospects</a></li>
         <li><a href="{{ url_for('stats') }}">Stats</a></li>
         <li><a href="{{ url_for('settings') }}">Settings</a></li>
     </ul>
@@ -30,6 +31,7 @@
 {% if session.get('authenticated') %}
 <nav class="nav-mobile">
     <a href="{{ url_for('missions') }}">📋<span>Missions</span></a>
+    <a href="{{ url_for('prospects') }}">🎯<span>Prospects</span></a>
     <a href="{{ url_for('stats') }}">📊<span>Stats</span></a>
     <a href="{{ url_for('settings') }}">⚙️<span>Settings</span></a>
     <a href="{{ url_for('logout') }}">🚪<span>Quitter</span></a>

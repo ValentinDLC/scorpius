@@ -140,3 +140,12 @@ def update_prospect_audit(prospect_id: int, audit: dict):
                 updated_at=datetime.utcnow(),
             )
         )
+
+def update_prospect_statut(prospect_id: int, statut: str):
+    """Met à jour le statut d'un prospect."""
+    with engine.begin() as conn:
+        conn.execute(
+            prospects.update()
+            .where(prospects.c.id == prospect_id)
+            .values(statut=statut, updated_at=datetime.utcnow())
+        )

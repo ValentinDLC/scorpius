@@ -106,3 +106,16 @@ def register_prospects_routes(app, login_required, ok, err, run_async):
             return ok(audit, "Audit mis à jour")
         except Exception as e:
             return err(f"Audit impossible: {e}", 500)
+    @app.route("/api/prospects/<int:prospect_id>/statut", methods=["PATCH"])
+    @login_required
+    def api_update_prospect_statut(prospect_id: int):
+        from storage.prospects import update_prospect_statut
+        data = request.get_json(silent=True) or {}
+        statut = data.get("statut")
+        if not statut:
+            return err("Champ 'statut' manquant")
+        try:
+            update_prospect_statut(prospect_id, statut)
+            return ok({"statut": statut}, "Statut mis à jour")
+        except Exception as e:
+            return err(f"Update impossible: {e}", 500)
