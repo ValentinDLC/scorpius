@@ -15,16 +15,34 @@ def get_api_key() -> str:
     return key
 
 def extract_ville_from_address(address: str) -> str:
-    """Extrait la ville depuis l'adresse formatted (ex: '75011 Paris')."""
+    """Extrait la ville depuis l'adresse formatted (ex: '75011 Paris, France').
+    Gère : 'Rue X, 75011 Paris, France' → 'Paris'
+    """
     import re
-    match = re.search(r"(\d{5})\s+([A-Za-zÀ-ÿ\-]+)", address)
+    if not address:
+        return ""
+    # Stratégie 1 : code postal 5 chiffres suivi du nom de ville
+    # Capture tout ce qui suit le CP jusqu'à la virgule ou fin de chaîne
+    match = re.search(r"\b(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\- ]*?)(?:\s*,|\s*$)", address)
     if match:
-        return match.group(2)
-    parts = address.split(",")
-    for part in parts:
-        part = part.strip()
-        if re.match(r"^\d{5}", part):
-            return part.split(maxsplit=1)[1] if len(part.split()) > 1 else ""
+        ville_raw = match.group(2).strip()
+        # Prendre uniquement le premier mot significatif (exclut "Cedex", arrondissements)
+        mots = ville_raw.split()
+        if mots:
+            return mots[0]
+    # Stratégie 2 : avant-dernier segment séparé par virgule (avant "France")
+    EXCLUSIONS = {"france", "fr", ""}
+    parts = [p.strip() for p in address.split(",")]
+    # Parcourir à l'envers, ignorer "France" et codes postaux seuls
+    for part in reversed(parts):
+        if part.lower() in EXCLUSIONS:
+            continue
+        if re.match(r"^\d{5}\s*$", part):
+            continue
+        # Enlever un éventuel code postal en début de segment
+        cleaned = re.sub(r"^\d{5}\s+", "", part).strip()
+        if cleaned and cleaned.lower() not in EXCLUSIONS:
+            return cleaned.split()[0]
     return ""
 
 def search_places(text_query: str, language_code: str = "fr", max_results: int = 10) -> List[Dict]:
