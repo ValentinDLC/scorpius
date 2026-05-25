@@ -106,6 +106,19 @@ def register_prospects_routes(app, login_required, ok, err, run_async):
             return ok(audit, "Audit mis à jour")
         except Exception as e:
             return err(f"Audit impossible: {e}", 500)
+    @app.route("/api/prospects/<int:prospect_id>/argumentaire", methods=["GET"])
+    @login_required
+    def api_argumentaire_prospect(prospect_id: int):
+        prospect = get_prospect_by_id(prospect_id)
+        if not prospect:
+            return err("Prospect introuvable", 404)
+        try:
+            from services.argumentaire import generate_argumentaire
+            texte = generate_argumentaire(prospect)
+            return ok({"argumentaire": texte})
+        except Exception as e:
+            return err(f"Argumentaire impossible: {e}", 500)
+
     @app.route("/api/prospects/<int:prospect_id>/statut", methods=["PATCH"])
     @login_required
     def api_update_prospect_statut(prospect_id: int):

@@ -127,6 +127,23 @@
             <button id="btn-close-prospect" class="btn btn-ghost">✕</button>
         </div>
         <div id="prospect-detail" class="space-y-4"></div>
+
+        <!-- Argumentaire d'appel -->
+        <div id="argumentaire-section" style="margin-top:1rem;display:none">
+            <div style="background:var(--bg3,#f5f5f5);border-left:3px solid var(--primary,#7c5cbf);
+                        border-radius:6px;padding:1rem;font-size:0.9rem;line-height:1.6;
+                        color:var(--text1)">
+                <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;
+                            letter-spacing:0.05em;color:var(--primary,#7c5cbf);margin-bottom:0.5rem">
+                    💬 Argumentaire suggéré
+                </div>
+                <div id="argumentaire-texte" style="font-style:italic"></div>
+                <div id="argumentaire-loading" style="color:var(--text2);font-size:0.85rem">
+                    ⏳ Génération en cours...
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 space-y-4" style="margin-top:1.5rem">
             <a id="btn-call" href="#" class="btn btn-primary btn-full">📞 Appeler</a>
             <a id="btn-maps" href="#" target="_blank" class="btn btn-secondary btn-full">🗺️ Maps</a>
@@ -204,6 +221,16 @@
 
     async function openProspectDetail(id) {
         currentProspectId = id;
+        // Reset argumentaire
+        var argSection = document.getElementById('argumentaire-section');
+        var argTexte = document.getElementById('argumentaire-texte');
+        var argLoading = document.getElementById('argumentaire-loading');
+        if (argSection) {
+            argSection.style.display = 'none';
+            argTexte.textContent = '';
+            argLoading.style.display = 'block';
+        }
+
         var res = await fetch('/api/prospects/' + id);
         var data = await res.json();
         if (!data.ok) return;
@@ -230,6 +257,31 @@
             + '<div><div class="label">Google Maps</div><div><a href="' + (p.google_maps_url || '#') + '" target="_blank">Voir sur Maps</a></div></div>'
             + '</div>' + auditHtml;
         document.getElementById('btn-call').href = p.telephone ? 'tel:' + p.telephone : '#';
+
+        // Charger l'argumentaire en arrière-plan
+        if (argSection) {
+            argSection.style.display = 'block';
+            argTexte.textContent = '';
+            argLoading.style.display = 'block';
+        }
+        fetch('/api/prospects/' + id + '/argumentaire')
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (argSection) {
+                    argLoading.style.display = 'none';
+                    if (data.ok && data.data && data.data.argumentaire) {
+                        argTexte.textContent = data.data.argumentaire;
+                    } else {
+                        argTexte.textContent = "Argumentaire non disponible.";
+                    }
+                }
+            })
+            .catch(function(){
+                if (argSection) {
+                    argLoading.style.display = 'none';
+                    argTexte.textContent = "Erreur lors de la génération.";
+                }
+            });
         document.getElementById('btn-maps').href = p.google_maps_url || '#';
         document.getElementById('prospect-modal').classList.remove('hidden');
     }
