@@ -24,4 +24,4 @@ python-telegram-bot>=20.7
 
 # ── AUDIO ML (optionnel - lourd, uniquement si voice_auth actif) ─
 # torch>=2.0.0
-# torchaudio>=2.0.0
+# torchaudio>=2.0.0groq>=0.9.0

@@ -239,13 +239,23 @@
         var siteHtml = p.url_site
             ? '<a href="' + escapeHtml(p.url_site) + '" target="_blank">' + escapeHtml(p.url_site) + '</a>'
             : '<span class="text-warning">Aucun</span>';
+        function auditBadge(ok, labelOk, labelKo) {
+            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
+        }
+        var perfScore = p.audit_performance || 0;
+        var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
         var auditHtml = '<div class="filters-card" style="margin-top:1rem">'
-            + '<h4 style="margin-bottom:0.75rem">Audit (Score: ' + p.score_audit + '/100)</h4>'
-            + '<div class="grid grid-cols-2">'
-            + '<div><span>Mobile</span> <span class="' + (p.audit_mobile ? 'text-success' : 'text-danger') + '">' + (p.audit_mobile ? 'OK' : 'Non optimise') + '</span></div>'
-            + '<div><span>Performance</span> <span class="' + (p.audit_performance > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_performance + '/100</span></div>'
-            + '<div><span>SEO</span> <span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_seo + '/100</span></div>'
-            + '<div><span>GMB</span> <span class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '">' + (p.audit_gmb ? 'Present' : 'Absent') + '</span></div>'
+            + '<h4 style="margin-bottom:0.75rem">📊 Audit — Score : <span class="badge badge-' + scoreCls + '">' + p.score_audit + '/100</span></h4>'
+            + '<div class="grid grid-cols-2" style="gap:0.5rem">'
+            + '<div><span class="label">📱 Mobile</span><br>' + auditBadge(p.audit_mobile, 'Optimisé', 'Non optimisé') + '</div>'
+            + '<div><span class="label">⚡ Perf</span><br><span class="' + (perfScore > 50 ? 'text-success' : 'text-danger') + '">' + (perfScore > 0 ? perfScore + '/100' : '⚠️ N/A') + '</span></div>'
+            + '<div><span class="label">🔍 SEO</span><br><span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_seo + '/100</span></div>'
+            + '<div><span class="label">🗺️ GMB</span><br>' + auditBadge(p.audit_gmb, 'Présent', 'Absent') + '</div>'
+            + '</div>'
+            + '<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text2)">'
+            + 'SEO : ' + (p.seo_title ? '✅' : '❌') + ' Title '
+            + (p.seo_meta_description ? '✅' : '❌') + ' Meta '
+            + (p.seo_h1 ? '✅' : '❌') + ' H1'
             + '</div></div>';
         document.getElementById('prospect-detail').innerHTML =
             '<div class="grid grid-cols-2">'
