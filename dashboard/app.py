@@ -109,6 +109,10 @@ register_prospects_routes(app, login_required, ok, err, run_async)
 # PWA
 # ══════════════════════════════════════════════════════════════════════════════
 
+@app.route('/health', methods=['GET'])
+def health():
+    return {"status": "ok"}, 200
+
 @app.route("/manifest.json")
 def manifest():
     return send_from_directory("static", "manifest.json")

@@ -12,7 +12,7 @@ async def audit_seo_tags(url: str) -> dict:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await page.goto(url, timeout=5000, wait_until="domcontentloaded")
 
             title = await page.title()
             meta_desc = await page.locator('meta[name="description"]').get_attribute("content")
