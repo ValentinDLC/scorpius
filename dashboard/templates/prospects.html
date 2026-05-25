@@ -244,6 +244,11 @@
         }
         var perfScore = p.audit_performance || 0;
         var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
+        function auditBadge(ok, labelOk, labelKo) {
+            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
+        }
+        var perfScore = p.audit_performance || 0;
+        var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
         var auditHtml = '<div class="filters-card" style="margin-top:1rem">'
             + '<h4 style="margin-bottom:0.75rem">📊 Audit — Score : <span class="badge badge-' + scoreCls + '">' + p.score_audit + '/100</span></h4>'
             + '<div class="grid grid-cols-2" style="gap:0.5rem">'

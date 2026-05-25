@@ -135,7 +135,7 @@ def generate_argumentaire(prospect: dict) -> str:
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=200,
+            max_tokens=120,  # ~4-5 phrases max pour un pitch oral
         )
         texte = response.choices[0].message.content.strip()
         logger.info(f"Argumentaire Groq généré pour prospect {prospect.get('id')}")
