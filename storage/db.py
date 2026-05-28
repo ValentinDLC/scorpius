@@ -223,6 +223,7 @@ def init_db():
                     ON calls(created_at DESC);
 
             """))
+    ensure_calls_schema()
     logger.info("DB initialisee OK")
 
 
@@ -956,3 +957,88 @@ def create_call_record(
     except Exception as e:
         logger.error(f"❌ create_call_record failed: {e}")
         return None
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Calls schema guard
+# ──────────────────────────────────────────────────────────────────────────────
+
+def ensure_calls_schema() -> None:
+    """Garantit le schéma calls sur SQLite et PostgreSQL."""
+    with get_conn() as conn:
+        if _using_sqlite:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS calls (
+                    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prospect_id         INTEGER NOT NULL,
+                    date                DATETIME,
+                    duree               INTEGER,
+                    audio_path          TEXT,
+                    transcript          TEXT,
+                    probleme_detecte    TEXT,
+                    solution_proposee   TEXT,
+                    interet_percu       VARCHAR(80),
+                    email_suivi_draft   TEXT,
+                    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    status              TEXT DEFAULT 'recording',
+                    duration_sec        REAL,
+                    updated_at          DATETIME,
+                    privacy_mode        INTEGER DEFAULT 0,
+                    audio_saved         INTEGER DEFAULT 1
+                );
+            """))
+
+            cols = {row[1] for row in conn.execute(text("PRAGMA table_info(calls)"))}
+
+            if "audio_path" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN audio_path TEXT"))
+            if "transcript" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN transcript TEXT"))
+            if "created_at" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN created_at DATETIME"))
+            if "status" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN status TEXT DEFAULT 'recording'"))
+            if "duration_sec" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN duration_sec REAL"))
+            if "updated_at" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN updated_at DATETIME"))
+            if "privacy_mode" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN privacy_mode INTEGER DEFAULT 0"))
+            if "audio_saved" not in cols:
+                conn.execute(text("ALTER TABLE calls ADD COLUMN audio_saved INTEGER DEFAULT 1"))
+
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_calls_prospect ON calls(prospect_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_calls_status ON calls(status)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_calls_created ON calls(created_at DESC)"))
+
+        else:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS calls (
+                    id                  SERIAL PRIMARY KEY,
+                    prospect_id         INTEGER NOT NULL,
+                    audio_path          TEXT,
+                    transcript          TEXT,
+                    status              TEXT DEFAULT 'recording',
+                    duration_sec        NUMERIC,
+                    created_at          TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at          TIMESTAMPTZ,
+                    privacy_mode        BOOLEAN DEFAULT FALSE,
+                    audio_saved         BOOLEAN DEFAULT TRUE
+                );
+            """))
+
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS audio_path TEXT"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS transcript TEXT"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'recording'"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS duration_sec NUMERIC"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS privacy_mode BOOLEAN DEFAULT FALSE"))
+            conn.execute(text("ALTER TABLE calls ADD COLUMN IF NOT EXISTS audio_saved BOOLEAN DEFAULT TRUE"))
+
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_calls_prospect ON calls(prospect_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_calls_status ON calls(status)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_calls_created ON calls(created_at DESC)"))
+
+    logger.info("✅ calls schema OK")

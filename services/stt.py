@@ -4,6 +4,7 @@ Transcription audio via faster-whisper.
 """
 
 import os
+import io
 import logging
 from pathlib import Path
 from typing import Optional
@@ -64,6 +65,52 @@ def transcribe_audio(audio_path: str, language: str = "fr") -> dict:
 
     segments, info = model.transcribe(
         str(path),
+        language=language,
+        vad_filter=True,
+        beam_size=3,
+        temperature=0.0,
+        condition_on_previous_text=False,
+        initial_prompt=initial_prompt,
+    )
+
+    text_parts = []
+    for segment in segments:
+        txt = segment.text.strip()
+        if txt:
+            text_parts.append(txt)
+
+    transcript = " ".join(text_parts).strip()
+
+    return {
+        "text": transcript,
+        "language": getattr(info, "language", language),
+        "duration": getattr(info, "duration", None),
+    }
+
+
+
+def transcribe_audio_bytes(audio_bytes: bytes, language: str = "fr") -> dict:
+    """
+    Transcrit un flux audio en mémoire.
+    Aucun fichier disque n'est créé.
+    """
+    if not audio_bytes:
+        return {"text": "", "language": language, "duration": None}
+
+    model = _get_model()
+
+    audio_file = io.BytesIO(audio_bytes)
+    audio_file.name = "live.webm"
+
+    initial_prompt = os.getenv(
+        "WHISPER_INITIAL_PROMPT",
+        "Conversation téléphonique de prospection commerciale en français. "
+        "Le vocabulaire peut inclure: site internet, automatisation, authentification, "
+        "développement web, audit, SEO, performance, mobile, devis, rendez-vous, objection client."
+    )
+
+    segments, info = model.transcribe(
+        audio_file,
         language=language,
         vad_filter=True,
         beam_size=3,

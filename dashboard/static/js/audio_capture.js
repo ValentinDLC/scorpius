@@ -1,7 +1,8 @@
 class AudioCapture {
-    constructor(prospectId, onStatus) {
+    constructor(prospectId, onStatus, onEvent) {
         this.prospectId = prospectId;
         this.onStatus = onStatus || (() => {});
+        this.onEvent = onEvent || (() => {});
         this.mediaRecorder = null;
         this.ws = null;
         this.stream = null;
@@ -11,6 +12,7 @@ class AudioCapture {
     async start() {
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
             this.mediaRecorder = new MediaRecorder(this.stream, {
                 mimeType: 'audio/webm;codecs=opus',
                 audioBitsPerSecond: 16000
@@ -26,15 +28,28 @@ class AudioCapture {
                 this.onStatus('recording');
             };
 
+            this.ws.onmessage = (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    this.onEvent(payload);
+                } catch (e) {
+                    this.onEvent({ type: 'raw', text: event.data });
+                }
+            };
+
             this.mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0 && this.ws.readyState === WebSocket.OPEN) {
+                if (e.data.size > 0 && this.ws && this.ws.readyState === WebSocket.OPEN) {
                     this.ws.send(e.data);
                 }
             };
 
-            // Bug 2 fix : onclose ne rappelle plus stop()
-            this.ws.onclose = () => { this.onStatus('disconnected'); };
-            this.ws.onerror = () => { this.onStatus('error'); };
+            this.ws.onclose = () => {
+                this.onStatus('disconnected');
+            };
+
+            this.ws.onerror = () => {
+                this.onStatus('error');
+            };
 
         } catch (err) {
             console.error('🚫 Accès micro refusé:', err);
@@ -44,14 +59,22 @@ class AudioCapture {
 
     stop() {
         this.isRecording = false;
+
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-            // Bug 2 fix : on ferme le WS APRÈS que le recorder a envoyé le dernier chunk
             this.mediaRecorder.onstop = () => {
-                if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.close();
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.close();
+                }
             };
             this.mediaRecorder.stop();
+        } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.close();
         }
-        if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+
+        if (this.stream) {
+            this.stream.getTracks().forEach(t => t.stop());
+        }
+
         this.onStatus('stopped');
     }
 }

@@ -1,9 +1,11 @@
 from flask_sock import Sock
 import logging
 import os
+import json
 from datetime import datetime
 
 from storage.db import create_call_record
+from services.stt import transcribe_audio_bytes
 
 sock = Sock()
 logger = logging.getLogger(__name__)
@@ -15,6 +17,27 @@ def _env_bool(name: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _safe_ws_send(ws, payload: dict) -> None:
+    try:
+        ws.send(json.dumps(payload, ensure_ascii=False))
+    except Exception as e:
+        logger.debug(f"WS send ignored: {e}")
 
 
 def init_ws_audio(app):
@@ -31,16 +54,36 @@ def init_ws_audio(app):
     @sock.route('/ws/audio/<int:prospect_id>')
     def audio_stream(ws, prospect_id):
         privacy_mode = _env_bool("VOICE_PRIVACY_MODE", False)
+        live_stt = _env_bool("VOICE_LIVE_STT", False)
+
+        # En privacy, on force zéro sauvegarde audio.
         save_audio = _env_bool("VOICE_SAVE_AUDIO", True) and not privacy_mode
+
+        live_interval_sec = _env_float("VOICE_LIVE_STT_INTERVAL_SEC", 5.0)
+        live_min_bytes = _env_int("VOICE_LIVE_STT_MIN_BYTES", 12000)
 
         logger.info(
             f"🎙️ WS connecté → prospect {prospect_id} "
-            f"(privacy={privacy_mode}, save_audio={save_audio})"
+            f"(privacy={privacy_mode}, save_audio={save_audio}, live_stt={live_stt})"
         )
 
+        _safe_ws_send(ws, {
+            "type": "server_status",
+            "privacy_mode": privacy_mode,
+            "save_audio": save_audio,
+            "live_stt": live_stt,
+        })
+
         buffer = bytearray() if save_audio else None
+
+        # Buffer RAM temporaire pour STT live.
+        # En mode privacy, il n'est jamais écrit sur disque et sera clear() en finally.
+        live_buffer = bytearray() if live_stt else None
+
         bytes_received = 0
         started_at = datetime.utcnow()
+        last_stt_at = started_at
+        last_transcript = ""
 
         try:
             while True:
@@ -52,13 +95,46 @@ def init_ws_audio(app):
                 if isinstance(data, bytes):
                     bytes_received += len(data)
 
-                    # Mode démo : on garde l'audio complet pour fichier .webm
                     if save_audio and buffer is not None:
                         buffer.extend(data)
 
-                    # Mode privacy : aucun audio n'est accumulé ni sauvegardé.
-                    # Les chunks sont traités puis immédiatement oubliés.
-                    # Le STT live sera branché ici à l'étape suivante.
+                    if live_stt and live_buffer is not None:
+                        live_buffer.extend(data)
+
+                        elapsed_since_stt = (
+                            datetime.utcnow() - last_stt_at
+                        ).total_seconds()
+
+                        if (
+                            len(live_buffer) >= live_min_bytes
+                            and elapsed_since_stt >= live_interval_sec
+                        ):
+                            try:
+                                result = transcribe_audio_bytes(bytes(live_buffer))
+                                text = (result.get("text") or "").strip()
+
+                                if text and text != last_transcript:
+                                    last_transcript = text
+                                    _safe_ws_send(ws, {
+                                        "type": "transcript",
+                                        "partial": True,
+                                        "text": text,
+                                        "privacy_mode": privacy_mode,
+                                    })
+                                    logger.info(
+                                        f"📝 Live transcript prospect={prospect_id}: "
+                                        f"{text[:120]}"
+                                    )
+
+                                last_stt_at = datetime.utcnow()
+
+                            except Exception as stt_e:
+                                logger.warning(f"⚠️ STT live failed: {stt_e}")
+                                _safe_ws_send(ws, {
+                                    "type": "stt_error",
+                                    "error": str(stt_e),
+                                })
+                                last_stt_at = datetime.utcnow()
 
                 kb = bytes_received / 1024
                 if kb > 0 and int(kb) % 32 == 0 and kb - int(kb) < 0.5:
@@ -89,7 +165,6 @@ def init_ws_audio(app):
 
                     status = "recording"
                     audio_saved = True
-
                     logger.info(f"💾 Audio sauvegardé → {path}")
 
                 else:
@@ -101,10 +176,20 @@ def init_ws_audio(app):
                     prospect_id=prospect_id,
                     audio_path=path,
                     duration_sec=duration_sec,
+                    transcript=None if privacy_mode else last_transcript or None,
                     status=status,
                     privacy_mode=privacy_mode,
                     audio_saved=audio_saved,
                 )
+
+                _safe_ws_send(ws, {
+                    "type": "call_saved",
+                    "call_id": call_id,
+                    "status": status,
+                    "audio_saved": audio_saved,
+                    "privacy_mode": privacy_mode,
+                    "duration_sec": duration_sec,
+                })
 
                 logger.info(
                     f"📞 Call terminé prospect={prospect_id} "
@@ -114,5 +199,11 @@ def init_ws_audio(app):
 
             else:
                 logger.info(f"⚠️ Buffer trop petit ({bytes_received}B), ignoré")
+
+            if live_buffer is not None:
+                live_buffer.clear()
+
+            if buffer is not None:
+                buffer.clear()
 
             logger.info(f"🔌 WS fermé → prospect {prospect_id}")
