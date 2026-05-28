@@ -24,3 +24,9 @@ Thumbs.db
 *.sqlite.backup
 cookies.txt
 dashboard/templates/*.backup.*
+.env
+config/profil.yaml
+*.db
+__pycache__/
+.DS_Store
+*.log
