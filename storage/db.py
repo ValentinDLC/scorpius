@@ -145,6 +145,24 @@ def init_db():
                     voice_auth    BOOLEAN DEFAULT FALSE,
                     date_creation TIMESTAMPTZ DEFAULT NOW()
                 );
+                CREATE TABLE IF NOT EXISTS calls (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prospect_id   INTEGER NOT NULL,
+                    audio_path    TEXT NOT NULL UNIQUE,
+                    transcript    TEXT,
+                    status        TEXT DEFAULT 'recording',
+                    duration_sec  REAL,
+                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at    DATETIME
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_calls_prospect
+                    ON calls(prospect_id);
+                CREATE INDEX IF NOT EXISTS idx_calls_status
+                    ON calls(status);
+                CREATE INDEX IF NOT EXISTS idx_calls_created
+                    ON calls(created_at DESC);
+
 
                 CREATE TABLE IF NOT EXISTS missions (
                     id             SERIAL PRIMARY KEY,
@@ -182,6 +200,24 @@ def init_db():
                     date_creation TIMESTAMPTZ DEFAULT NOW(),
                     date_maj      TIMESTAMPTZ
                 );
+                CREATE TABLE IF NOT EXISTS calls (
+                    id            SERIAL PRIMARY KEY,
+                    prospect_id   INTEGER NOT NULL,
+                    audio_path    TEXT NOT NULL UNIQUE,
+                    transcript    TEXT,
+                    status        TEXT DEFAULT 'recording',
+                    duration_sec  NUMERIC,
+                    created_at    TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at    TIMESTAMPTZ
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_calls_prospect
+                    ON calls(prospect_id);
+                CREATE INDEX IF NOT EXISTS idx_calls_status
+                    ON calls(status);
+                CREATE INDEX IF NOT EXISTS idx_calls_created
+                    ON calls(created_at DESC);
+
             """))
     logger.info("DB initialisee OK")
 
@@ -771,3 +807,130 @@ def _notification_row_to_dict(row) -> dict:
             d[field] = d[field].isoformat()
 
     return d
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Calls / Voice Prospecting
+# ──────────────────────────────────────────────────────────────────────────────
+
+def create_call_record(
+    prospect_id: int,
+    audio_path: str,
+    duration_sec: Optional[float] = None,
+    transcript: Optional[str] = None,
+    status: str = "recording",
+) -> Optional[int]:
+    """Crée un enregistrement d'appel après sauvegarde audio."""
+    now = datetime.utcnow()
+
+    params = {
+        "prospect_id": prospect_id,
+        "audio_path": audio_path,
+        "duration_sec": duration_sec,
+        "transcript": transcript,
+        "status": status,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    try:
+        with get_conn() as conn:
+            if _using_sqlite:
+                conn.execute(text("""
+                    INSERT INTO calls (
+                        prospect_id, audio_path, duration_sec,
+                        transcript, status, created_at, updated_at
+                    )
+                    VALUES (
+                        :prospect_id, :audio_path, :duration_sec,
+                        :transcript, :status, :created_at, :updated_at
+                    )
+                """), params)
+                call_id = conn.execute(text("SELECT last_insert_rowid()")).scalar()
+            else:
+                call_id = conn.execute(text("""
+                    INSERT INTO calls (
+                        prospect_id, audio_path, duration_sec,
+                        transcript, status, created_at, updated_at
+                    )
+                    VALUES (
+                        :prospect_id, :audio_path, :duration_sec,
+                        :transcript, :status, :created_at, :updated_at
+                    )
+                    RETURNING id
+                """), params).scalar()
+
+        logger.info(f"📞 Call DB créé id={call_id} prospect={prospect_id}")
+        return int(call_id) if call_id is not None else None
+
+    except Exception as e:
+        logger.error(f"❌ create_call_record failed: {e}")
+        return None
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Calls / Voice Prospecting - helpers STT
+# ──────────────────────────────────────────────────────────────────────────────
+
+def get_call_by_id(call_id: int) -> Optional[dict]:
+    """Retourne un appel par id."""
+    try:
+        with get_conn() as conn:
+            row = conn.execute(
+                text("SELECT * FROM calls WHERE id = :id"),
+                {"id": call_id},
+            ).mappings().first()
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"❌ get_call_by_id failed: {e}")
+        return None
+
+
+def update_call_status(call_id: int, status: str) -> bool:
+    """Met à jour le statut d'un appel."""
+    try:
+        with get_conn() as conn:
+            conn.execute(text("""
+                UPDATE calls
+                SET status = :status,
+                    updated_at = :updated_at
+                WHERE id = :id
+            """), {
+                "id": call_id,
+                "status": status,
+                "updated_at": datetime.utcnow(),
+            })
+        return True
+    except Exception as e:
+        logger.error(f"❌ update_call_status failed: {e}")
+        return False
+
+
+def update_call_transcript(
+    call_id: int,
+    transcript: str,
+    status: str = "transcribed",
+    duration_sec: Optional[float] = None,
+) -> bool:
+    """Sauve la transcription d'un appel."""
+    try:
+        with get_conn() as conn:
+            conn.execute(text("""
+                UPDATE calls
+                SET transcript = :transcript,
+                    status = :status,
+                    duration_sec = COALESCE(:duration_sec, duration_sec),
+                    updated_at = :updated_at
+                WHERE id = :id
+            """), {
+                "id": call_id,
+                "transcript": transcript,
+                "status": status,
+                "duration_sec": duration_sec,
+                "updated_at": datetime.utcnow(),
+            })
+        return True
+    except Exception as e:
+        logger.error(f"❌ update_call_transcript failed: {e}")
+        return False

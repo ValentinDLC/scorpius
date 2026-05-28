@@ -10,6 +10,7 @@ import threading
 from datetime import datetime, timedelta
 from functools import wraps
 
+from dashboard.ws_audio import init_ws_audio
 from flask import (
     Flask, render_template, request, jsonify,
     session, redirect, url_for, flash, send_from_directory
@@ -26,6 +27,7 @@ from storage.db import (
 )
 
 from dashboard.prospects_routes import register_prospects_routes
+from dashboard.calls_routes import register_calls_routes
 from storage.prospects import init_prospects_db
 
 load_dotenv()
@@ -41,12 +43,15 @@ logger = logging.getLogger(__name__)
 # ══════════════════════════════════════════════════════════════════════════════
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+init_ws_audio(app)  # init websocket audio for run.py
+register_calls_routes(app)  # calls API
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "scorpius-dev-key")
 app.config.update(
     SESSION_COOKIE_HTTPONLY  = True,
     SESSION_COOKIE_SAMESITE  = "Lax",
     PERMANENT_SESSION_LIFETIME = timedelta(days=7),
 )
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
@@ -906,6 +911,11 @@ def create_app():
     init_prospects_db()
     return app
 
+
+
+@app.route("/test-audio")
+def test_audio():
+    return render_template("test_audio.html")
 
 if __name__ == "__main__":
     logging.basicConfig(

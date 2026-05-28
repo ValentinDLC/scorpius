@@ -30,3 +30,16 @@ config/profil.yaml
 __pycache__/
 .DS_Store
 *.log
+
+# Generated audio
+tmp_audio/
+*.webm
+
+# Local databases
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
