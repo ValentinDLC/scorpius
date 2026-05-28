@@ -10,6 +10,13 @@ logger = logging.getLogger(__name__)
 _ws_audio_registered = False
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def init_ws_audio(app):
     global _ws_audio_registered
 
@@ -23,9 +30,16 @@ def init_ws_audio(app):
 
     @sock.route('/ws/audio/<int:prospect_id>')
     def audio_stream(ws, prospect_id):
-        logger.info(f"🎙️ WS connecté → prospect {prospect_id}")
+        privacy_mode = _env_bool("VOICE_PRIVACY_MODE", False)
+        save_audio = _env_bool("VOICE_SAVE_AUDIO", True) and not privacy_mode
 
-        buffer = bytearray()
+        logger.info(
+            f"🎙️ WS connecté → prospect {prospect_id} "
+            f"(privacy={privacy_mode}, save_audio={save_audio})"
+        )
+
+        buffer = bytearray() if save_audio else None
+        bytes_received = 0
         started_at = datetime.utcnow()
 
         try:
@@ -36,11 +50,19 @@ def init_ws_audio(app):
                     break
 
                 if isinstance(data, bytes):
-                    buffer.extend(data)
+                    bytes_received += len(data)
 
-                kb = len(buffer) / 1024
+                    # Mode démo : on garde l'audio complet pour fichier .webm
+                    if save_audio and buffer is not None:
+                        buffer.extend(data)
+
+                    # Mode privacy : aucun audio n'est accumulé ni sauvegardé.
+                    # Les chunks sont traités puis immédiatement oubliés.
+                    # Le STT live sera branché ici à l'étape suivante.
+
+                kb = bytes_received / 1024
                 if kb > 0 and int(kb) % 32 == 0 and kb - int(kb) < 0.5:
-                    logger.info(f"📦 {prospect_id}: {kb:.1f} KB")
+                    logger.info(f"📦 {prospect_id}: {kb:.1f} KB reçus")
 
         except Exception as e:
             msg = str(e)
@@ -52,28 +74,45 @@ def init_ws_audio(app):
         finally:
             duration_sec = max(0.0, (datetime.utcnow() - started_at).total_seconds())
 
-            if len(buffer) > 512:
-                tmp_dir = "tmp_audio"
-                os.makedirs(tmp_dir, exist_ok=True)
+            if bytes_received > 512:
+                path = None
 
-                ts = datetime.now().strftime("%H%M%S_%f")
-                path = os.path.join(tmp_dir, f"call_{prospect_id}_{ts}.webm")
+                if save_audio and buffer is not None and len(buffer) > 512:
+                    tmp_dir = "tmp_audio"
+                    os.makedirs(tmp_dir, exist_ok=True)
 
-                with open(path, "wb") as f:
-                    f.write(buffer)
+                    ts = datetime.now().strftime("%H%M%S_%f")
+                    path = os.path.join(tmp_dir, f"call_{prospect_id}_{ts}.webm")
+
+                    with open(path, "wb") as f:
+                        f.write(buffer)
+
+                    status = "recording"
+                    audio_saved = True
+
+                    logger.info(f"💾 Audio sauvegardé → {path}")
+
+                else:
+                    status = "privacy_no_audio"
+                    audio_saved = False
+                    logger.info("🔒 Mode privacy actif : aucun audio sauvegardé")
 
                 call_id = create_call_record(
                     prospect_id=prospect_id,
                     audio_path=path,
                     duration_sec=duration_sec,
-                    status="recording",
+                    status=status,
+                    privacy_mode=privacy_mode,
+                    audio_saved=audio_saved,
                 )
 
                 logger.info(
-                    f"💾 {len(buffer)/1024:.1f} KB → {path} "
-                    f"(duration={duration_sec:.1f}s, call_id={call_id})"
+                    f"📞 Call terminé prospect={prospect_id} "
+                    f"bytes={bytes_received/1024:.1f}KB duration={duration_sec:.1f}s "
+                    f"call_id={call_id} audio_saved={audio_saved}"
                 )
+
             else:
-                logger.info(f"⚠️ Buffer trop petit ({len(buffer)}B), ignoré")
+                logger.info(f"⚠️ Buffer trop petit ({bytes_received}B), ignoré")
 
             logger.info(f"🔌 WS fermé → prospect {prospect_id}")

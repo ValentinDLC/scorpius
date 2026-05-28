@@ -148,12 +148,14 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS calls (
                     id            INTEGER PRIMARY KEY AUTOINCREMENT,
                     prospect_id   INTEGER NOT NULL,
-                    audio_path    TEXT NOT NULL UNIQUE,
+                    audio_path    TEXT UNIQUE,
                     transcript    TEXT,
                     status        TEXT DEFAULT 'recording',
                     duration_sec  REAL,
                     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at    DATETIME
+                    updated_at    DATETIME,
+                    privacy_mode  INTEGER DEFAULT 0,
+                    audio_saved    INTEGER DEFAULT 1
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_calls_prospect
@@ -203,12 +205,14 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS calls (
                     id            SERIAL PRIMARY KEY,
                     prospect_id   INTEGER NOT NULL,
-                    audio_path    TEXT NOT NULL UNIQUE,
+                    audio_path    TEXT UNIQUE,
                     transcript    TEXT,
                     status        TEXT DEFAULT 'recording',
                     duration_sec  NUMERIC,
                     created_at    TIMESTAMPTZ DEFAULT NOW(),
-                    updated_at    TIMESTAMPTZ
+                    updated_at    TIMESTAMPTZ,
+                    privacy_mode  BOOLEAN DEFAULT FALSE,
+                    audio_saved    BOOLEAN DEFAULT TRUE
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_calls_prospect
@@ -813,60 +817,6 @@ def _notification_row_to_dict(row) -> dict:
 # Calls / Voice Prospecting
 # ──────────────────────────────────────────────────────────────────────────────
 
-def create_call_record(
-    prospect_id: int,
-    audio_path: str,
-    duration_sec: Optional[float] = None,
-    transcript: Optional[str] = None,
-    status: str = "recording",
-) -> Optional[int]:
-    """Crée un enregistrement d'appel après sauvegarde audio."""
-    now = datetime.utcnow()
-
-    params = {
-        "prospect_id": prospect_id,
-        "audio_path": audio_path,
-        "duration_sec": duration_sec,
-        "transcript": transcript,
-        "status": status,
-        "created_at": now,
-        "updated_at": now,
-    }
-
-    try:
-        with get_conn() as conn:
-            if _using_sqlite:
-                conn.execute(text("""
-                    INSERT INTO calls (
-                        prospect_id, audio_path, duration_sec,
-                        transcript, status, created_at, updated_at
-                    )
-                    VALUES (
-                        :prospect_id, :audio_path, :duration_sec,
-                        :transcript, :status, :created_at, :updated_at
-                    )
-                """), params)
-                call_id = conn.execute(text("SELECT last_insert_rowid()")).scalar()
-            else:
-                call_id = conn.execute(text("""
-                    INSERT INTO calls (
-                        prospect_id, audio_path, duration_sec,
-                        transcript, status, created_at, updated_at
-                    )
-                    VALUES (
-                        :prospect_id, :audio_path, :duration_sec,
-                        :transcript, :status, :created_at, :updated_at
-                    )
-                    RETURNING id
-                """), params).scalar()
-
-        logger.info(f"📞 Call DB créé id={call_id} prospect={prospect_id}")
-        return int(call_id) if call_id is not None else None
-
-    except Exception as e:
-        logger.error(f"❌ create_call_record failed: {e}")
-        return None
-
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -934,3 +884,75 @@ def update_call_transcript(
     except Exception as e:
         logger.error(f"❌ update_call_transcript failed: {e}")
         return False
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Calls / Voice Prospecting - privacy-aware persistence
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Privacy-aware override for create_call_record
+def create_call_record(
+    prospect_id: int,
+    audio_path: Optional[str] = None,
+    duration_sec: Optional[float] = None,
+    transcript: Optional[str] = None,
+    status: str = "recording",
+    privacy_mode: bool = False,
+    audio_saved: bool = True,
+) -> Optional[int]:
+    """Crée un enregistrement d'appel, compatible mode privacy sans audio sauvegardé."""
+    now = datetime.utcnow()
+
+    params = {
+        "prospect_id": prospect_id,
+        "audio_path": audio_path,
+        "duration_sec": duration_sec,
+        "transcript": transcript,
+        "status": status,
+        "privacy_mode": bool(privacy_mode),
+        "audio_saved": bool(audio_saved),
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    try:
+        with get_conn() as conn:
+            if _using_sqlite:
+                conn.execute(text("""
+                    INSERT INTO calls (
+                        prospect_id, audio_path, duration_sec,
+                        transcript, status, privacy_mode, audio_saved,
+                        created_at, updated_at
+                    )
+                    VALUES (
+                        :prospect_id, :audio_path, :duration_sec,
+                        :transcript, :status, :privacy_mode, :audio_saved,
+                        :created_at, :updated_at
+                    )
+                """), params)
+                call_id = conn.execute(text("SELECT last_insert_rowid()")).scalar()
+            else:
+                call_id = conn.execute(text("""
+                    INSERT INTO calls (
+                        prospect_id, audio_path, duration_sec,
+                        transcript, status, privacy_mode, audio_saved,
+                        created_at, updated_at
+                    )
+                    VALUES (
+                        :prospect_id, :audio_path, :duration_sec,
+                        :transcript, :status, :privacy_mode, :audio_saved,
+                        :created_at, :updated_at
+                    )
+                    RETURNING id
+                """), params).scalar()
+
+        logger.info(
+            f"📞 Call DB créé id={call_id} prospect={prospect_id} "
+            f"privacy={privacy_mode} audio_saved={audio_saved}"
+        )
+        return int(call_id) if call_id is not None else None
+
+    except Exception as e:
+        logger.error(f"❌ create_call_record failed: {e}")
+        return None
