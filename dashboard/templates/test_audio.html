@@ -24,6 +24,7 @@
             <span id="mode-badge" class="badge bg-secondary">mode inconnu</span>
             <span id="save-badge" class="badge bg-secondary">audio inconnu</span>
             <span id="stt-badge" class="badge bg-secondary">stt inconnu</span>
+            <span id="speaker-badge" class="badge bg-secondary">speaker inconnu</span>
         </div>
 
         <h5>📝 Transcription live</h5>
@@ -98,7 +99,7 @@
             log(label);
         }
 
-        function appendLiveText(text) {
+        function appendLiveText(text, speaker = "UNKNOWN", similarity = null) {
             const clean = (text || "").trim();
             if (!clean) return;
 
@@ -117,11 +118,18 @@
             time.className = "text-muted small";
             time.textContent = new Date().toLocaleTimeString();
 
+            const speakerLine = document.createElement('div');
+            speakerLine.className = speaker === "ME" ? "fw-bold text-success mb-1" : "fw-bold text-danger mb-1";
+            speakerLine.textContent = speaker === "ME"
+                ? `🧑 ME${similarity !== null ? " · sim=" + similarity : ""}`
+                : `👤 UNKNOWN${similarity !== null ? " · sim=" + similarity : ""}`;
+
             const content = document.createElement('div');
             content.style.whiteSpace = "pre-wrap";
             content.textContent = clean;
 
             item.appendChild(time);
+            item.appendChild(speakerLine);
             item.appendChild(content);
             feedBox.prepend(item);
 
@@ -148,11 +156,35 @@
                     event.live_stt ? 'bg-primary' : 'bg-secondary'
                 );
 
-                log(`server_status privacy=${event.privacy_mode} save_audio=${event.save_audio} live_stt=${event.live_stt}`);
+                setBadge(
+                    'speaker-badge',
+                    event.speaker_guard
+                        ? (event.me_profile_exists ? '🧬 Speaker Guard ON' : '⚠️ Profil ME absent')
+                        : 'Speaker Guard OFF',
+                    event.speaker_guard
+                        ? (event.me_profile_exists ? 'bg-info text-dark' : 'bg-danger')
+                        : 'bg-secondary'
+                );
+
+                log(`server_status privacy=${event.privacy_mode} save_audio=${event.save_audio} live_stt=${event.live_stt} speaker_guard=${event.speaker_guard} me_profile=${event.me_profile_exists}`);
+            }
+
+            if (event.type === 'speaker') {
+                setBadge(
+                    'speaker-badge',
+                    event.speaker === 'ME'
+                        ? `🧑 ME sim=${event.similarity}`
+                        : `👤 UNKNOWN sim=${event.similarity}`,
+                    event.speaker === 'ME' ? 'bg-success' : 'bg-danger'
+                );
+            }
+
+            if (event.type === 'speaker_error') {
+                log(`⚠️ Speaker error: ${event.error}`);
             }
 
             if (event.type === 'transcript') {
-                appendLiveText(event.text);
+                appendLiveText(event.text, event.speaker || 'UNKNOWN', event.similarity ?? null);
             }
 
             if (event.type === 'stt_progress') {

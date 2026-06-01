@@ -6,6 +6,7 @@ from datetime import datetime
 
 from storage.db import create_call_record
 from services.stt import transcribe_audio_bytes
+from services.speaker_guard import classify_webm_bytes, get_me_profile_status
 
 sock = Sock()
 logger = logging.getLogger(__name__)
@@ -55,16 +56,18 @@ def init_ws_audio(app):
     def audio_stream(ws, prospect_id):
         privacy_mode = _env_bool("VOICE_PRIVACY_MODE", False)
         live_stt = _env_bool("VOICE_LIVE_STT", False)
+        speaker_guard = _env_bool("VOICE_SPEAKER_GUARD", False)
 
         # En privacy, on force zéro sauvegarde audio.
         save_audio = _env_bool("VOICE_SAVE_AUDIO", True) and not privacy_mode
 
         live_interval_sec = _env_float("VOICE_LIVE_STT_INTERVAL_SEC", 5.0)
         live_min_bytes = _env_int("VOICE_LIVE_STT_MIN_BYTES", 12000)
+        me_profile = get_me_profile_status()
 
         logger.info(
             f"🎙️ WS connecté → prospect {prospect_id} "
-            f"(privacy={privacy_mode}, save_audio={save_audio}, live_stt={live_stt})"
+            f"(privacy={privacy_mode}, save_audio={save_audio}, live_stt={live_stt}, speaker_guard={speaker_guard})"
         )
 
         _safe_ws_send(ws, {
@@ -72,6 +75,8 @@ def init_ws_audio(app):
             "privacy_mode": privacy_mode,
             "save_audio": save_audio,
             "live_stt": live_stt,
+            "speaker_guard": speaker_guard,
+            "me_profile_exists": bool(me_profile.get("exists")),
         })
 
         buffer = bytearray() if save_audio else None
@@ -113,6 +118,34 @@ def init_ws_audio(app):
                                 result = transcribe_audio_bytes(bytes(live_buffer))
                                 text = (result.get("text") or "").strip()
 
+                                speaker_payload = {
+                                    "speaker": "UNKNOWN",
+                                    "similarity": None,
+                                    "threshold": None,
+                                    "speaker_guard": speaker_guard,
+                                }
+
+                                if speaker_guard and me_profile.get("exists"):
+                                    try:
+                                        speaker_result = classify_webm_bytes(bytes(live_buffer))
+                                        speaker_payload.update({
+                                            "speaker": speaker_result.get("speaker", "UNKNOWN"),
+                                            "similarity": speaker_result.get("similarity"),
+                                            "threshold": speaker_result.get("threshold"),
+                                        })
+
+                                        _safe_ws_send(ws, {
+                                            "type": "speaker",
+                                            **speaker_payload,
+                                        })
+
+                                    except Exception as spk_e:
+                                        logger.warning(f"⚠️ Speaker Guard failed: {spk_e}")
+                                        _safe_ws_send(ws, {
+                                            "type": "speaker_error",
+                                            "error": str(spk_e),
+                                        })
+
                                 if text and text != last_transcript:
                                     last_transcript = text
                                     _safe_ws_send(ws, {
@@ -120,9 +153,12 @@ def init_ws_audio(app):
                                         "partial": True,
                                         "text": text,
                                         "privacy_mode": privacy_mode,
+                                        **speaker_payload,
                                     })
                                     logger.info(
-                                        f"📝 Live transcript prospect={prospect_id}: "
+                                        f"📝 Live transcript prospect={prospect_id} "
+                                        f"speaker={speaker_payload.get('speaker')} "
+                                        f"sim={speaker_payload.get('similarity')}: "
                                         f"{text[:120]}"
                                     )
 
