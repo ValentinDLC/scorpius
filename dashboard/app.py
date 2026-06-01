@@ -28,6 +28,7 @@ from storage.db import (
 
 from dashboard.prospects_routes import register_prospects_routes
 from dashboard.calls_routes import register_calls_routes
+from dashboard.voice_profile_routes import register_voice_profile_routes
 from storage.prospects import init_prospects_db
 
 load_dotenv()
@@ -45,6 +46,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 init_ws_audio(app)  # init websocket audio for run.py
 register_calls_routes(app)  # calls API
+register_voice_profile_routes(app)  # voice profile API
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "scorpius-dev-key")
 app.config.update(
     SESSION_COOKIE_HTTPONLY  = True,

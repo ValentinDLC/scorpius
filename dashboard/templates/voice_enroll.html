@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCORPIUS - Profil vocal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light p-4">
+    <div class="container col-md-7 mx-auto bg-white p-4 rounded shadow">
+        <h2 class="mb-3">🗣️ Enregistrer ma voix</h2>
+
+        <p class="text-muted">
+            Lis le texte pendant 20 secondes. SCORPIUS créera uniquement ton empreinte vocale locale.
+            L'audio brut n'est pas conservé.
+        </p>
+
+        <div class="alert alert-info">
+            Texte conseillé :<br>
+            <strong>
+                Bonjour, je suis Valentin. Ceci est mon profil vocal pour SCORPIUS.
+                J'appelle des prospects pour parler de leur site internet, de performance,
+                de SEO, d'automatisation et de rendez-vous commerciaux.
+            </strong>
+        </div>
+
+        <button id="btn" class="btn btn-primary w-100 mb-3">🎙️ Démarrer l'enregistrement</button>
+
+        <div id="status" class="alert alert-secondary text-center">⏸️ Prêt</div>
+
+        <div id="logs"
+             class="mt-3 p-2 bg-dark text-light font-monospace small"
+             style="height: 180px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        const btn = document.getElementById("btn");
+        const statusBox = document.getElementById("status");
+        const logs = document.getElementById("logs");
+
+        let recorder = null;
+        let stream = null;
+        let chunks = [];
+        let recording = false;
+
+        function log(msg) {
+            const div = document.createElement("div");
+            div.textContent = `${new Date().toLocaleTimeString()} → ${msg}`;
+            logs.appendChild(div);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function start() {
+            chunks = [];
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            recorder = new MediaRecorder(stream, {
+                mimeType: "audio/webm;codecs=opus",
+                audioBitsPerSecond: 32000
+            });
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            recorder.onstop = async () => {
+                stream.getTracks().forEach(t => t.stop());
+
+                const blob = new Blob(chunks, { type: "audio/webm" });
+
+                statusBox.textContent = "⏳ Calcul de l'empreinte vocale...";
+                log(`Audio capturé: ${(blob.size / 1024).toFixed(1)} KB`);
+
+                const res = await fetch("/api/voice-profile/enroll", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "audio/webm"
+                    },
+                    body: blob
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    statusBox.className = "alert alert-success text-center";
+                    statusBox.textContent = `✅ Profil vocal créé (${data.embedding_dim} dimensions)`;
+                    log(`✅ Profil ME enregistré: ${data.profile_path}`);
+                } else {
+                    statusBox.className = "alert alert-danger text-center";
+                    statusBox.textContent = `❌ Erreur: ${data.error}`;
+                    log(`❌ ${data.error}`);
+                }
+            };
+
+            recorder.start(500);
+            recording = true;
+
+            btn.textContent = "⏹️ Arrêter et créer mon profil";
+            statusBox.className = "alert alert-warning text-center";
+            statusBox.textContent = "🔴 Enregistrement... parle 20 secondes";
+            log("🎙️ Enregistrement démarré");
+        }
+
+        function stop() {
+            recording = false;
+            btn.textContent = "🎙️ Démarrer l'enregistrement";
+
+            if (recorder && recorder.state !== "inactive") {
+                recorder.stop();
+            }
+        }
+
+        btn.addEventListener("click", async () => {
+            if (recording) {
+                stop();
+            } else {
+                try {
+                    await start();
+                } catch (e) {
+                    statusBox.className = "alert alert-danger text-center";
+                    statusBox.textContent = "🚫 Micro refusé ou erreur";
+                    log(`❌ ${e}`);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
