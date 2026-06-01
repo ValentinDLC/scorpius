@@ -49,3 +49,6 @@ __pycache__/
 .#*
 *~
 .DS_Store
+models/
+data/voice_profiles/
+data/voice_profile_me.json
