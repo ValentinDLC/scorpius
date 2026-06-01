@@ -2,64 +2,161 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Capture Audio - SCORPIUS</title>
+    <title>SCORPIUS - Transcription Live</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light p-4">
-    <div class="container col-md-7 mx-auto bg-white p-4 rounded shadow">
-        <h2 class="mb-3">🎙️ Test Capture Audio</h2>
+    <div class="container col-md-8 mx-auto bg-white p-4 rounded shadow">
+        <h2 class="mb-3">🎙️ SCORPIUS — Transcription en direct</h2>
+
         <p class="text-muted">
-            Démarre, parle 15-20s, puis arrête. En mode privacy, aucun audio n'est sauvegardé.
+            Clique démarrer, parle, et la transcription doit apparaître ici toutes les quelques secondes.
+            En mode privacy, aucun audio n'est sauvegardé.
         </p>
 
         <button id="btn-rec" class="btn btn-primary w-100 mb-3">🎙️ Démarrer l'appel</button>
+
         <div id="status" class="alert alert-secondary text-center">⏸️ Prêt</div>
 
+        <div class="mb-3">
+            <span id="mode-badge" class="badge bg-secondary">mode inconnu</span>
+            <span id="save-badge" class="badge bg-secondary">audio inconnu</span>
+            <span id="stt-badge" class="badge bg-secondary">stt inconnu</span>
+        </div>
+
         <h5>📝 Transcription live</h5>
-        <div id="transcript" class="border rounded p-3 mb-3 bg-light" style="min-height: 110px;">
+        <div id="live-transcript"
+             class="border rounded p-3 mb-3 bg-light fs-5"
+             style="min-height: 150px; white-space: pre-wrap;">
             <span class="text-muted">Aucune transcription pour le moment.</span>
         </div>
 
+        <h5>📜 Historique reçu pendant cet appel</h5>
+        <div id="feed"
+             class="border rounded p-3 mb-3"
+             style="height: 240px; overflow-y: auto; background:#fafafa;">
+            <span class="text-muted">Les phrases reconnues apparaîtront ici.</span>
+        </div>
+
         <h5>Logs</h5>
-        <div id="logs" class="mt-2 p-2 bg-dark text-light font-monospace small" style="height: 170px; overflow-y: auto;"></div>
+        <div id="logs"
+             class="mt-2 p-2 bg-dark text-light font-monospace small"
+             style="height: 170px; overflow-y: auto;"></div>
     </div>
 
-    <script src="/static/js/audio_capture.js"></script>
+    <script src="/static/js/audio_capture.js?v=live-ui-20260531"></script>
     <script>
+        // Supprime les anciens caches PWA côté navigateur
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations()
+                .then(regs => regs.forEach(reg => reg.unregister()))
+                .catch(() => {});
+        }
+        if ('caches' in window) {
+            caches.keys()
+                .then(keys => keys.forEach(key => caches.delete(key)))
+                .catch(() => {});
+        }
+
+        const btn = document.getElementById('btn-rec');
+        const statusBox = document.getElementById('status');
         const logBox = document.getElementById('logs');
-        const transcriptBox = document.getElementById('transcript');
+        const liveBox = document.getElementById('live-transcript');
+        const feedBox = document.getElementById('feed');
 
-        const log = (msg) => {
-            logBox.innerHTML += `<div>${new Date().toLocaleTimeString()} → ${msg}</div>`;
+        let transcriptFull = "";
+        let feedInit = false;
+
+        function log(msg) {
+            const div = document.createElement('div');
+            div.textContent = `${new Date().toLocaleTimeString()} → ${msg}`;
+            logBox.appendChild(div);
             logBox.scrollTop = logBox.scrollHeight;
-        };
+        }
 
-        const LABELS = {
-            connected:    '🟢 Connecté au serveur',
-            recording:    '🔴 Enregistrement en cours...',
-            stopped:      '⏹️ Arrêté',
-            disconnected: '🔌 Déconnecté',
-            error:        '❌ Erreur WebSocket',
-            mic_error:    '🚫 Accès micro refusé'
-        };
+        function setBadge(id, text, cls) {
+            const el = document.getElementById(id);
+            el.className = `badge ${cls}`;
+            el.textContent = text;
+        }
 
         function onStatus(status) {
-            const label = LABELS[status] || status;
-            document.getElementById('status').textContent = label;
-            document.getElementById('btn-rec').textContent =
-                status === 'recording' ? '⏹️ Arrêter' : '🎙️ Démarrer';
+            const labels = {
+                connected: '🟢 Connecté',
+                recording: '🔴 Enregistrement + transcription live...',
+                stopped: '⏹️ Arrêté',
+                disconnected: '🔌 Déconnecté',
+                error: '❌ Erreur WebSocket',
+                mic_error: '🚫 Micro refusé'
+            };
+
+            const label = labels[status] || status;
+            statusBox.textContent = label;
+            btn.textContent = status === 'recording' ? '⏹️ Arrêter' : '🎙️ Démarrer';
             log(label);
+        }
+
+        function appendLiveText(text) {
+            const clean = (text || "").trim();
+            if (!clean) return;
+
+            transcriptFull = clean;
+            liveBox.textContent = transcriptFull;
+
+            if (!feedInit) {
+                feedBox.innerHTML = "";
+                feedInit = true;
+            }
+
+            const item = document.createElement('div');
+            item.className = "mb-3 pb-2 border-bottom";
+
+            const time = document.createElement('div');
+            time.className = "text-muted small";
+            time.textContent = new Date().toLocaleTimeString();
+
+            const content = document.createElement('div');
+            content.style.whiteSpace = "pre-wrap";
+            content.textContent = clean;
+
+            item.appendChild(time);
+            item.appendChild(content);
+            feedBox.prepend(item);
+
+            log(`📝 ${clean.slice(0, 120)}${clean.length > 120 ? "..." : ""}`);
         }
 
         function onEvent(event) {
             if (event.type === 'server_status') {
-                log(`privacy=${event.privacy_mode} save_audio=${event.save_audio} live_stt=${event.live_stt}`);
+                setBadge(
+                    'mode-badge',
+                    event.privacy_mode ? '🔒 privacy ON' : '🧪 demo',
+                    event.privacy_mode ? 'bg-success' : 'bg-warning text-dark'
+                );
+
+                setBadge(
+                    'save-badge',
+                    event.save_audio ? '💾 audio sauvegardé' : '🚫 audio non sauvegardé',
+                    event.save_audio ? 'bg-warning text-dark' : 'bg-success'
+                );
+
+                setBadge(
+                    'stt-badge',
+                    event.live_stt ? '🧠 STT live ON' : 'STT live OFF',
+                    event.live_stt ? 'bg-primary' : 'bg-secondary'
+                );
+
+                log(`server_status privacy=${event.privacy_mode} save_audio=${event.save_audio} live_stt=${event.live_stt}`);
             }
 
             if (event.type === 'transcript') {
-                transcriptBox.textContent = event.text;
-                log('📝 Transcript live reçu');
+                appendLiveText(event.text);
+            }
+
+            if (event.type === 'stt_progress') {
+                log(`⏳ STT analyse ${event.kb} KB`);
             }
 
             if (event.type === 'stt_error') {
@@ -67,21 +164,26 @@
             }
 
             if (event.type === 'call_saved') {
-                log(`📞 Call saved id=${event.call_id} audio_saved=${event.audio_saved}`);
+                log(`📞 call_id=${event.call_id} audio_saved=${event.audio_saved}`);
             }
         }
 
         window._capture = null;
 
-        document.getElementById('btn-rec').addEventListener('click', () => {
+        btn.addEventListener('click', () => {
             if (window._capture && window._capture.isRecording) {
                 window._capture.stop();
                 window._capture = null;
-            } else {
-                transcriptBox.innerHTML = '<span class="text-muted">En attente de transcription...</span>';
-                window._capture = new AudioCapture(1, onStatus, onEvent);
-                window._capture.start();
+                return;
             }
+
+            transcriptFull = "";
+            feedInit = false;
+            liveBox.innerHTML = '<span class="text-muted">En attente de transcription live...</span>';
+            feedBox.innerHTML = '<span class="text-muted">Les phrases reconnues apparaîtront ici.</span>';
+
+            window._capture = new AudioCapture(1, onStatus, onEvent);
+            window._capture.start();
         });
     </script>
 </body>
