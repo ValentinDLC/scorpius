@@ -3,6 +3,18 @@
 run.py - Scorpius launcher
 """
 import sys
+import os
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+import os as os_sys
+sys.path.insert(0, os_sys.path.join(os_sys.path.dirname(__file__), '..', 'data'))
+
+import sys
+import os as os_sys
+sys.path.insert(0, os_sys.path.join(os_sys.path.dirname(__file__), '..', 'data'))
+
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()

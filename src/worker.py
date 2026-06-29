@@ -53,7 +53,8 @@ logger = logging.getLogger("worker")
 
 def load_worker_config() -> dict:
     """Charge worker_config.yaml."""
-    path = Path("worker_config.yaml")
+    BASE_DIR = Path(__file__).parent.parent  # racine scorpius
+    path = BASE_DIR / "config" / "worker_config.yaml"
     if not path.exists():
         logger.error("worker_config.yaml introuvable")
         sys.exit(1)
@@ -530,8 +531,8 @@ Exemples :
     )
     parser.add_argument(
         "--config",
-        default="worker_config.yaml",
-        help="Chemin vers worker_config.yaml (défaut: worker_config.yaml)",
+        default="config/worker_config.yaml",
+        help="Chemin vers worker_config.yaml (défaut: config/worker_config.yaml)",
     )
 
     return parser.parse_args()

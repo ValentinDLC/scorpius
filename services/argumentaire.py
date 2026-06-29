@@ -65,7 +65,7 @@ CONTEXTE PROSPECT :
 - Fiche Google Maps : {"présente" if audit_gmb else "absente"}
 
 CONSIGNES :
-- Ton naturel, pas commercial agressif
+- Ton naturel, pas commercial agressif ""a developper"" 
 - Maximum 5 phrases
 - Mentionner 1-2 problèmes concrets détectés
 - Proposer une valeur claire (visibilité, clients, mobile)

@@ -190,7 +190,10 @@ def init_ws_audio(app):
                 path = None
 
                 if save_audio and buffer is not None and len(buffer) > 512:
-                    tmp_dir = "tmp_audio"
+                    import os
+                    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+                    ROOT_DIR = os.path.dirname(BASE_DIR)
+                    tmp_dir = os.path.join(ROOT_DIR, "tmp", "audio")
                     os.makedirs(tmp_dir, exist_ok=True)
 
                     ts = datetime.now().strftime("%H%M%S_%f")

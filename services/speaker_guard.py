@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 PROFILE_PATH = Path(os.getenv("VOICE_PROFILE_PATH", "data/voice_profile_me.json"))
 MODEL_DIR = os.getenv("SPEAKER_MODEL_DIR", "models/spkrec-ecapa-voxceleb")
 SPEAKER_MODEL = os.getenv("SPEAKER_MODEL", "speechbrain/spkrec-ecapa-voxceleb")
-DEFAULT_THRESHOLD = float(os.getenv("VOICE_ME_THRESHOLD", "0.72"))
+DEFAULT_THRESHOLD = float(os.getenv("VOICE_ME_THRESHOLD", "0.28"))
 
 _CLASSIFIER = None
 
@@ -213,7 +213,7 @@ def compare_to_me(audio_bytes: bytes) -> dict:
 
     current_embedding = embedding_from_webm_bytes(audio_bytes)
     similarity = _cosine(profile["embedding"], current_embedding)
-    threshold = float(profile.get("threshold", DEFAULT_THRESHOLD))
+    threshold = float(os.getenv("VOICE_ME_THRESHOLD", profile.get("threshold", DEFAULT_THRESHOLD)))
 
     speaker = "ME" if similarity >= threshold else "UNKNOWN"
 
@@ -249,6 +249,6 @@ def get_me_profile_status() -> dict:
         "speaker": "ME",
         "created_at": profile.get("created_at"),
         "model": profile.get("model"),
-        "threshold": profile.get("threshold"),
+        "threshold": float(os.getenv("VOICE_ME_THRESHOLD", profile.get("threshold", DEFAULT_THRESHOLD))),
         "embedding_dim": profile.get("embedding_dim"),
     }

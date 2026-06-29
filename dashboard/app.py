@@ -3,6 +3,10 @@ dashboard/app.py
 Flask API REST + PWA — Scorpius v2
 """
 
+import sys
+import os as os_sys
+sys.path.insert(0, os_sys.path.join(os_sys.path.dirname(__file__), '..', 'data'))
+
 import os
 import asyncio
 import logging
@@ -43,7 +47,13 @@ logger = logging.getLogger(__name__)
 # INIT FLASK
 # ══════════════════════════════════════════════════════════════════════════════
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)  # racine scorpius
+
+app = Flask(__name__, 
+            template_folder=os.path.join(ROOT_DIR, "web", "templates"), 
+            static_folder=os.path.join(ROOT_DIR, "web", "static"))
 init_ws_audio(app)  # init websocket audio for run.py
 register_calls_routes(app)  # calls API
 register_voice_profile_routes(app)  # voice profile API

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Scorpius — Settings{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">
+            Configuration de Scorpius
+        </p>
+    </div>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        Profil freelancer
+    </h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">Métier</div>
+            <strong>{{ profil.metier }}</strong>
+        </div>
+
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">Langue</div>
+            <strong>{{ profil.langue }}</strong>
+        </div>
+
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">Budget minimum</div>
+            <strong>{{ profil.budget_min | format_euros }}</strong>
+        </div>
+
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">Compétences</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem;">
+                {% for c in profil.competences %}
+                <span class="badge badge-proposee">{{ c }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        LLM
+    </h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">Provider</div>
+            <strong>{{ llm.provider }}</strong>
+        </div>
+
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">Modèle</div>
+            <strong>{{ llm.model }}</strong>
+        </div>
+    </div>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        Plateformes actives
+    </h2>
+
+    {% if plateformes %}
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            {% for p in plateformes %}
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                gap: 1rem;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 0.6rem;
+            ">
+                <div style="min-width: 0;">
+                    <div style="
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        font-size: 0.85rem;
+                    ">
+                        {{ p.url }}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text2);">
+                        Tier {{ p.tier or 1 }}
+                    </div>
+                </div>
+
+                {% if p.actif %}
+                    <span class="badge badge-en_cours">Active</span>
+                {% else %}
+                    <span class="badge badge-refusee">Inactive</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: var(--text2); font-size: 0.9rem;">
+            Aucune plateforme configurée.
+        </p>
+    {% endif %}
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        Worker & système
+    </h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <button class="btn btn-primary btn-full" id="btn-trigger-scrape-settings">
+            🔄 Demander un scraping
+        </button>
+
+        <button class="btn btn-ghost btn-full" id="btn-db-status">
+            🗄️ Tester la base de données
+        </button>
+
+        <button class="btn btn-ghost btn-full" id="btn-telegram-test">
+            📲 Tester Telegram
+        </button>
+
+        <button class="btn btn-ghost btn-full" onclick="toggleTheme()">
+            {{ '☀️ Passer en thème clair' if theme == 'dark' else '🌙 Passer en thème sombre' }}
+        </button>
+    </div>
+
+    <div id="settings-result" style="
+        margin-top: 1rem;
+        color: var(--text2);
+        font-size: 0.85rem;
+        line-height: 1.5;
+    "></div>
+</section>
+
+<section class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
+        Installation PWA
+    </h2>
+
+    <p style="color: var(--text2); font-size: 0.9rem; line-height: 1.5;">
+        Sur mobile, ouvre Scorpius dans ton navigateur puis utilise :
+    </p>
+
+    <ul style="
+        margin-top: 0.75rem;
+        padding-left: 1.2rem;
+        color: var(--text2);
+        font-size: 0.9rem;
+        line-height: 1.7;
+    ">
+        <li><strong>Android :</strong> menu Chrome → Ajouter à l'écran d'accueil</li>
+        <li><strong>iPhone :</strong> bouton partage Safari → Sur l'écran d'accueil</li>
+        <li><strong>Desktop :</strong> bouton Installer si disponible</li>
+    </ul>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setResult(message, type = "info") {
+    const el = document.getElementById("settings-result");
+    el.textContent = message;
+    showToast(message, type);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("btn-trigger-scrape-settings")?.addEventListener("click", async () => {
+        const data = await apiPost("/api/scraping/trigger", {});
+        if (data?.ok) setResult("Commande scraping envoyée au worker", "success");
+        else setResult(data?.message || "Erreur scraping", "error");
+    });
+
+    document.getElementById("btn-db-status")?.addEventListener("click", async () => {
+        const data = await apiGet("/api/settings/db-status");
+        if (data?.ok && data.data.connected) setResult("Base de données connectée", "success");
+        else setResult("Base de données inaccessible", "error");
+    });
+
+    document.getElementById("btn-telegram-test")?.addEventListener("click", async () => {
+        const data = await apiPost("/api/settings/telegram-test", {});
+        if (data?.ok) setResult("Message Telegram envoyé", "success");
+        else setResult(data?.message || "Erreur Telegram", "error");
+    });
+});
+</script>
+{% endblock %}
