@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}CRM - Gestion des Prospects | SCORPIUS v2{% endblock %}
+
+{% block extra_css %}
+<style>
+    .prospect-row {
+        transition: all 0.3s ease;
+    }
+    
+    .prospect-row.highlight {
+        background-color: #fff3cd !important;
+        box-shadow: inset 0 0 10px rgba(255, 193, 7, 0.3);
+    }
+    
+    .score-badge {
+        font-size: 1.1rem;
+        font-weight: 700;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.35rem;
+        display: inline-block;
+    }
+    
+    .score-excellent { background-color: #28a745; color: white; }
+    .score-good { background-color: #17a2b8; color: white; }
+    .score-medium { background-color: #ffc107; color: black; }
+    .score-poor { background-color: #dc3545; color: white; }
+    
+    .status-select {
+        border: none;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+        color: white;
+    }
+    
+    .status-select:hover {
+        opacity: 0.9;
+    }
+    
+    .status-select:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+    
+    .status-nouveau { background-color: #6c757d; }
+    .status-à_démarcher { background-color: #007bff; }
+    .status-en_cours { background-color: #ffc107; color: black; }
+    .status-gagné { background-color: #28a745; }
+    .status-perdu { background-color: #dc3545; }
+    
+    .card-stat {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card-stat:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .table-responsive {
+        border-radius: 0.375rem;
+    }
+    
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        color: #495057;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #007bff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h2 mb-1">
+                <i class="bi bi-graph-up me-2"></i>CRM - Gestion des Prospects
+            </h1>
+            <p class="text-muted">Tableau de bord de suivi des prospects par statut</p>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card card-stat border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="card-text text-muted small mb-2">TOTAL</p>
+                    <h3 class="mb-0">{{ stats.total }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card card-stat border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="card-text text-muted small mb-2">NOUVEAU</p>
+                    <h3 class="mb-0 text-secondary">{{ stats.nouveau }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card card-stat border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="card-text text-muted small mb-2">À DÉMARCHER</p>
+                    <h3 class="mb-0 text-primary">{{ stats.à_démarcher }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card card-stat border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="card-text text-muted small mb-2">EN COURS</p>
+                    <h3 class="mb-0 text-warning">{{ stats.en_cours }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card card-stat border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="card-text text-muted small mb-2">GAGNÉ</p>
+                    <h3 class="mb-0 text-success">{{ stats.gagné }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card card-stat border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="card-text text-muted small mb-2">PERDU</p>
+                    <h3 class="mb-0 text-danger">{{ stats.perdu }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-600 text-uppercase text-muted">Filtrer par Statut</label>
+                            <div class="btn-group w-100" role="group">
+                                <a href="/crm?sort={{ current_sort }}&order={{ current_order }}" 
+                                   class="btn btn-sm btn-outline-secondary {% if current_filter == 'all' %}active{% endif %}">
+                                    Tous
+                                </a>
+                                {% for status in statuses %}
+                                <a href="/crm?status={{ status }}&sort={{ current_sort }}&order={{ current_order }}" 
+                                   class="btn btn-sm btn-outline-secondary {% if current_filter == status %}active{% endif %}">
+                                    {{ status }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-600 text-uppercase text-muted">Trier par</label>
+                            <select class="form-select form-select-sm" id="sortSelect">
+                                <option value="score-asc" {% if current_sort == 'score' and current_order == 'asc' %}selected{% endif %}>
+                                    Score (bas → haut) - PRIORITÉ
+                                </option>
+                                <option value="score-desc" {% if current_sort == 'score' and current_order == 'desc' %}selected{% endif %}>
+                                    Score (haut → bas)
+                                </option>
+                                <option value="name-asc" {% if current_sort == 'name' and current_order == 'asc' %}selected{% endif %}>
+                                    Nom (A → Z)
+                                </option>
+                                <option value="city-asc" {% if current_sort == 'city' and current_order == 'asc' %}selected{% endif %}>
+                                    Ville (A → Z)
+                                </option>
+                                <option value="date-desc" {% if current_sort == 'date' and current_order == 'desc' %}selected{% endif %}>
+                                    Plus récents
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des prospects -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                {% if prospects %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">
+                                    <i class="bi bi-building me-2"></i>Entreprise
+                                </th>
+                                <th style="width: 15%;">
+                                    <i class="bi bi-geo-alt me-2"></i>Ville
+                                </th>
+                                <th style="width: 15%;">
+                                    <i class="bi bi-briefcase me-2"></i>Secteur
+                                </th>
+                                <th style="width: 15%;">
+                                    <i class="bi bi-star me-2"></i>Score
+                                </th>
+                                <th style="width: 25%;">
+                                    <i class="bi bi-flag me-2"></i>Statut
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prospect in prospects %}
+                            <tr class="prospect-row {% if prospect.id|string == highlight_id %}highlight{% endif %}" data-prospect-id="{{ prospect.id }}">
+                                <td>
+                                    <strong>{{ prospect.nom }}</strong>
+                                    {% if prospect.url_site %}
+                                    <br><small class="text-muted">
+                                        <a href="{{ prospect.url_site }}" target="_blank" class="text-decoration-none">
+                                            <i class="bi bi-globe"></i> Visiter
+                                        </a>
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prospect.ville %}
+                                    <span class="badge bg-light text-dark">
+                                        {{ prospect.ville }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prospect.secteur %}
+                                    <small>{{ prospect.secteur }}</small>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prospect.score_audit %}
+                                        {% if prospect.score_audit >= 75 %}
+                                            <span class="score-badge score-excellent">{{ prospect.score_audit }}%</span>
+                                        {% elif prospect.score_audit >= 50 %}
+                                            <span class="score-badge score-good">{{ prospect.score_audit }}%</span>
+                                        {% elif prospect.score_audit >= 25 %}
+                                            <span class="score-badge score-medium">{{ prospect.score_audit }}%</span>
+                                        {% else %}
+                                            <span class="score-badge score-poor">{{ prospect.score_audit }}%</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <select class="status-select status-{{ prospect.statut|lower|replace(' ', '_') }}" 
+                                            data-prospect-id="{{ prospect.id }}"
+                                            data-current-status="{{ prospect.statut }}">
+                                        {% for status in statuses %}
+                                        <option value="{{ status }}" {% if prospect.statut == status %}selected{% endif %}>
+                                            {{ status }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <h5>Aucun prospect trouvé</h5>
+                    <p class="mb-3">Allez à la page <strong>Prospects</strong> pour en ajouter.</p>
+                    <a href="/prospects" class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrow-right me-2"></i>Aller aux Prospects
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast de notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="updateToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white border-0">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong class="me-auto">Succès</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mise à jour du statut
+document.querySelectorAll('.status-select').forEach(select => {
+    select.addEventListener('change', async function(e) {
+        const prospectId = this.dataset.prospectId;
+        const newStatus = this.value;
+        const previousStatus = this.dataset.currentStatus;
+        const previousClass = `status-${previousStatus.toLowerCase().replace(/ /g, '_')}`;
+        
+        try {
+            this.disabled = true;
+            const response = await fetch(`/api/crm/prospects/${prospectId}/statut`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ statut: newStatus })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Succès
+                this.dataset.currentStatus = newStatus;
+                this.className = `status-select status-${newStatus.toLowerCase().replace(/ /g, '_')}`;
+                showToast(data.message, 'success');
+                
+                // Recharger les stats après 1s
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                this.value = previousStatus;
+                showToast(`Erreur: ${data.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            this.value = previousStatus;
+            showToast('Erreur de connexion', 'error');
+        } finally {
+            this.disabled = false;
+        }
+    });
+});
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('updateToast');
+    const header = toast.querySelector('.toast-header');
+    const messageSpan = document.getElementById('toastMessage');
+    
+    messageSpan.textContent = message;
+    
+    header.classList.remove('bg-success', 'bg-danger', 'bg-warning');
+    if (type === 'error') {
+        header.classList.add('bg-danger');
+    } else if (type === 'warning') {
+        header.classList.add('bg-warning');
+    } else {
+        header.classList.add('bg-success');
+    }
+    
+    toast.classList.remove('hide');
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+// Gestion du tri
+document.getElementById('sortSelect').addEventListener('change', function() {
+    const [sort, order] = this.value.split('-');
+    const currentStatus = new URLSearchParams(window.location.search).get('status') || 'all';
+    window.location.href = `/crm?status=${currentStatus}&sort=${sort}&order=${order}`;
+});
+
+// Highlight animation
+const highlightRow = document.querySelector('.prospect-row.highlight');
+if (highlightRow) {
+    highlightRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+        highlightRow.classList.add('pulse');
+    }, 300);
+}
+</script>
+{% endblock %}
