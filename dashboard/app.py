@@ -264,30 +264,16 @@ def voice_login():
 @app.route("/missions")
 @login_required
 def missions():
-    statut    = request.args.get("statut", "")
-    score_min = int(request.args.get("score_min", 0))
-    plateforme = request.args.get("plateforme", "")
-    recherche  = request.args.get("q", "").strip()
-
-    toutes = get_missions(
-        statut     = statut or None,
-        score_min  = score_min,
-        plateforme = plateforme or None,
-        recherche  = recherche or None,
-    )
-
+    from storage.prospects import list_prospects
+    user_id = session.get("user_id", 0)
+    missions_list = list_prospects(user_id=user_id, statut="mission", limit=1000)
     return render_template(
         "missions.html",
-        missions          = toutes,
-        theme             = get_theme(),
-        filtre_statut     = statut,
-        filtre_score_min  = score_min,
-        filtre_plateforme = plateforme,
-        filtre_recherche  = recherche,
-        plateformes_dispo = get_plateformes_disponibles(),
-        compteurs         = get_compteurs_statut(),
-        stats             = get_stats_gains(),
+        theme    = get_theme(),
+        missions = missions_list,
     )
+
+
 
 
 
@@ -301,204 +287,55 @@ def prospects():
 @app.route("/stats")
 @login_required
 def stats():
+    from storage.prospects import get_prospect_stats
+
+    user_id = session.get("user_id", -1)
+
     return render_template(
         "stats.html",
-        theme     = get_theme(),
-        gains     = get_stats_gains(),
-        evolution = get_evolution_mensuelle(),
-        compteurs = get_compteurs_statut(),
+        theme=get_theme(),
+        stats=get_prospect_stats(user_id),
     )
-
 
 @app.route("/settings")
 @login_required
 def settings():
-    cfg = get_config()
-
-    def cfg_value(name, default=None):
-        """
-        Compatibilité avec plusieurs versions de ScorpiusConfig :
-        - cfg.get("clé")
-        - cfg.profil / cfg.llm / cfg.scraping
-        - cfg.plateformes_actives
-        """
-        if hasattr(cfg, "get"):
-            try:
-                return cfg.get(name, default)
-            except Exception:
-                pass
-        return getattr(cfg, name, default)
-
-    profil = cfg_value("profil", {})
-    llm = cfg_value("llm", {})
-    scraping = cfg_value("scraping", {})
-    vocal = cfg_value("vocal_id", {})
-
-    plateformes = cfg_value("plateformes", None)
-    if plateformes is None:
-        plateformes = getattr(cfg, "plateformes_actives", [])
-
-    if callable(plateformes):
-        plateformes = plateformes()
-
     return render_template(
         "settings.html",
         theme=get_theme(),
-        config=cfg,
-        profil=profil,
-        llm=llm,
-        scraping=scraping,
-        vocal=vocal,
-        plateformes=plateformes or [],
+        account_id=session.get("user_id"),
     )
-
 
 # ══════════════════════════════════════════════════════════════════════════════
-# API — MISSIONS
-# ══════════════════════════════════════════════════════════════════════════════
+# API — MISSIONS LEGACY (TEMPORAIREMENT DÉSACTIVÉE)
+# Les missions à venir utilisent maintenant les prospects sélectionnés
+# depuis la page Prospects. Les anciennes données restent en base,
+# mais elles ne sont plus accessibles depuis le dashboard.
 
-@app.route("/api/missions")
+@app.route("/api/missions", defaults={"legacy_path": ""}, methods=["GET", "POST"])
+@app.route(
+    "/api/missions/<path:legacy_path>",
+    methods=["GET", "POST", "PATCH", "DELETE"],
+)
 @login_required
-def api_missions():
-    missions = get_missions(
-        statut     = request.args.get("statut") or None,
-        score_min  = int(request.args.get("score_min", 0)),
-        plateforme = request.args.get("plateforme") or None,
-        recherche  = request.args.get("q") or None,
-        limit      = int(request.args.get("limit", 100)),
-    )
-    return ok(missions)
-
-
-@app.route("/api/missions", methods=["POST"])
-def api_create_mission():
-    """
-    Reçoit les missions depuis le worker PC.
-    Auth par X-Worker-Key (pas de session).
-    """
-    if not _check_worker_key():
-        return err("Clé worker invalide", 403)
-
-    data = request.get_json(silent=True)
-    if not data:
-        return err("Body JSON manquant")
-
-    missions = data if isinstance(data, list) else [data]
-
-    inserted = 0
-    nouvelles = []
-    for m in missions:
-        if not m.get("url"):
-            continue
-        mission_id = upsert_mission(m)
-        if mission_id:
-            inserted += 1
-            nouvelles.append(m)
-
-    if inserted > 0:
-        notify_async("notify_nouvelles_missions", nouvelles)
-
-    return ok(
-        {"inserted": inserted, "total": len(missions)},
-        f"{inserted} nouvelle(s) mission(s)"
+def api_legacy_missions_disabled(legacy_path):
+    return err(
+        "Ancien module Missions temporairement désactivé. "
+        "Utilise Prospects puis Missions à venir.",
+        410,
     )
 
 
-@app.route("/api/missions/<int:mission_id>")
-@login_required
-def api_mission_detail(mission_id: int):
-    mission = get_mission_by_id(mission_id)
-    if not mission:
-        return err("Mission introuvable", 404)
-    return ok(mission)
-
-
-@app.route("/api/missions/<int:mission_id>/statut", methods=["PATCH"])
-@login_required
-def api_update_statut(mission_id: int):
-    data = request.get_json(silent=True) or {}
-    nouveau_statut = data.get("statut")
-    if not nouveau_statut:
-        return err("Champ 'statut' manquant")
-
-    mission = get_mission_by_id(mission_id)
-    if not mission:
-        return err("Mission introuvable", 404)
-
-    ancien_statut = mission["statut"]
-
-    try:
-        update_statut_mission(
-            mission_id = mission_id,
-            statut     = nouveau_statut,
-            gains      = float(data["gains"]) if data.get("gains") else None,
-            notes      = data.get("notes"),
-        )
-    except ValueError as e:
-        return err(str(e))
-
-    if ancien_statut != nouveau_statut:
-        notify_async(
-            "notify_statut_change",
-            mission["titre"],
-            ancien_statut,
-            nouveau_statut,
-        )
-
-    return ok(message=f"Statut → {nouveau_statut}")
-
-
-@app.route("/api/missions/<int:mission_id>", methods=["DELETE"])
-@login_required
-def api_delete_mission(mission_id: int):
-    if not get_mission_by_id(mission_id):
-        return err("Mission introuvable", 404)
-    delete_mission(mission_id)
-    return ok(message="Mission supprimée")
-
-
-@app.route("/api/missions/<int:mission_id>/relance", methods=["POST"])
-@login_required
-def api_relance(mission_id: int):
-    mission = get_mission_by_id(mission_id)
-    if not mission:
-        return err("Mission introuvable", 404)
-
-    data  = request.get_json(silent=True) or {}
-    jours = int(data.get("jours", 0))
-
-    if not jours and mission.get("date_statut"):
-        try:
-            date_statut = datetime.fromisoformat(
-                str(mission["date_statut"]).replace("Z", "+00:00")
-            )
-            jours = (datetime.utcnow() - date_statut.replace(tzinfo=None)).days
-        except Exception:
-            jours = 0
-
-    notify_async(
-        "notify_relance",
-        mission.get("client_nom", "Client inconnu"),
-        mission["titre"],
-        jours,
-        mission.get("url", ""),
-    )
-    return ok(message="Relance envoyée sur Telegram")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
 # API — STATS
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/stats")
 @login_required
 def api_stats():
-    return ok({
-        "gains":     get_stats_gains(),
-        "compteurs": get_compteurs_statut(),
-        "evolution": get_evolution_mensuelle(),
-    })
+    from storage.prospects import get_prospect_stats
 
+    user_id = session.get("user_id", -1)
+    return ok(get_prospect_stats(user_id))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # API — SETTINGS
@@ -545,23 +382,22 @@ def api_db_status():
 @app.route("/api/scraping/status")
 @login_required
 def api_scraping_status():
-    compteurs = get_compteurs_statut()
-    missions  = get_missions(limit=1)
-    dernier   = missions[0].get("date_scraping") if missions else None
     return ok({
-        "dernier_scraping": dernier,
-        "total_missions":   compteurs["total"],
-        "worker_actif":     bool(_last_worker_ping),
+        "active": False,
+        "message": (
+            "Fonction mise de côté : les entreprises sont désormais "
+            "recherchées depuis la page Prospects."
+        ),
     })
-
 
 @app.route("/api/scraping/trigger", methods=["POST"])
 @login_required
 def api_scraping_trigger():
-    """Dashboard → envoie commande scrape au worker PC."""
-    _enqueue_command("scrape_now")
-    return ok(message="Commande scrape_now envoyée au worker")
-
+    return err(
+        "Cette fonction est temporairement désactivée. "
+        "Utilise la recherche d'entreprises dans Prospects.",
+        410,
+    )
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WORKER — Communication PC ↔ Serveur

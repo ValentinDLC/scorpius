@@ -54,6 +54,9 @@
 .btn-add-crm:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(56,239,125,0.3)}
 .btn-add-crm:disabled{opacity:0.5;cursor:not-allowed}
 .btn-add-crm.added{background:linear-gradient(135deg,#28a745,#20c997)}
+.btn-add-mission{background:linear-gradient(135deg,#7c5cbf,#a855f7);color:white;border:none;padding:0.4rem 0.75rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.8rem;transition:all 0.2s;margin-top:0.5rem}
+.btn-add-mission:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(124,92,191,0.35)}
+.mission-selected{display:inline-block;background:#d4edda;color:#155724;padding:0.4rem 0.75rem;border-radius:6px;font-weight:600;font-size:0.8rem;margin-top:0.5rem}
 .toast-container{position:fixed;top:20px;right:20px;z-index:9999}
 .toast-notification{background:white;border-left:4px solid #28a745;border-radius:6px;padding:1rem;margin-bottom:0.5rem;box-shadow:0 4px 12px rgba(0,0,0,.15);min-width:300px;animation:slideIn 0.3s ease}
 .toast-notification.error{border-left-color:#dc3545}
@@ -181,12 +184,12 @@
     }
 
     function getStatutClass(s) {
-        var m = {a_appeler:'info', appele:'success', relance:'warning', gagne:'success', perdu:'danger'};
+        var m = {a_appeler:'info', appele:'success', relance:'warning', gagne:'success', perdu:'danger', mission:'success'};
         return m[s] || 'info';
     }
 
     function getStatutLabel(s) {
-        var m = {a_appeler:'A appeler', appele:'Appele', relance:'Relance', gagne:'Gagne', perdu:'Perdu'};
+        var m = {a_appeler:'A appeler', appele:'Appele', relance:'Relance', gagne:'Gagne', perdu:'Perdu', mission:'En mission'};
         return m[s] || s;
     }
 
@@ -387,7 +390,10 @@
                     + '<span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">🔍</span>'
                     + '<span class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '">📍</span>'
                     + '</div>'
-                    + '<button class="btn-add-crm" onclick="addProspectToCRM(' + p.id + ', \'" + escapeHtml(p.nom) + "\'); return false;" style="margin-top:0.5rem">➕ CRM</button>'
+                    + '<button class="btn-add-crm" onclick="addProspectToCRM(' + p.id + ', \'" + escapeHtml(p.nom) + "\'); event.stopPropagation(); return false;" style="margin-top:0.5rem">➕ CRM</button>'
+                    + (p.statut === 'mission'
+                        ? '<div class="mission-selected">✅ En mission</div>'
+                        : '<button class="btn-add-mission" onclick="passerEnMission(' + p.id + ', event); return false;">🎯 Mission</button>')
                     + '</div></div></div></div>';
             }).join('');
             container.querySelectorAll('.prospect-card').forEach(function(card) {
@@ -401,6 +407,30 @@
             document.getElementById('btn-retry').addEventListener('click', loadProspects);
         }
     }
+
+    window.passerEnMission = async function(id, evt) {
+        if (evt) evt.stopPropagation();
+
+        try {
+            var res = await fetch('/api/prospects/' + id + '/statut', {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({statut: 'mission'})
+            });
+
+            var data = await res.json();
+
+            if (res.ok && data.ok) {
+                showToastMsg('Entreprise ajoutée aux missions ✅', 'success');
+                loadProspects();
+            } else {
+                showToastMsg('Erreur : ' + (data.message || 'mise à jour impossible'), 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToastMsg('Erreur réseau', 'error');
+        }
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         loadProspects();
