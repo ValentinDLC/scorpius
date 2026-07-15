@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Inscription — Scorpius{% endblock %}
+
+{% block content %}
+<div style="
+    max-width: 520px;
+    margin: 8vh auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+">
+    <div style="text-align:center;">
+        <div style="font-size: 3rem;">🦂</div>
+        <h1 style="font-size: 1.5rem; color: var(--accent2); margin: 0.5rem 0 0;">Créer un compte</h1>
+        <p style="color: var(--text2); font-size: 0.9rem; margin: 0;">
+            Accès CRM & prospects
+        </p>
+    </div>
+
+    <div class="card">
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Inscription</h2>
+
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label for="nom">Nom</label>
+                <input id="nom" type="text" name="nom" required autofocus
+                       placeholder="Votre nom"
+                >
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label for="email">Email</label>
+                <input id="email" type="email" name="email" required
+                       placeholder="vous@exemple.com"
+                       autocomplete="email"
+                >
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label for="password">Mot de passe</label>
+                <input id="password" type="password" name="password" required
+                       placeholder="••••••••"
+                >
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="confirm_password">Confirmer</label>
+                <input id="confirm_password" type="password" name="confirm_password" required
+                       placeholder="••••••••"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">S’inscrire</button>
+        </form>
+
+        <div style="margin-top: 1rem; text-align:center; font-size: 0.9rem;">
+            <a href="{{ url_for('login') }}">Déjà inscrit ? Se connecter</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

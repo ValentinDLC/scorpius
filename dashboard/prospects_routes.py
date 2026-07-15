@@ -132,3 +132,16 @@ def register_prospects_routes(app, login_required, ok, err, run_async):
             return ok({"statut": statut}, "Statut mis à jour")
         except Exception as e:
             return err(f"Update impossible: {e}", 500)
+
+    @app.route("/api/prospects/<int:prospect_id>", methods=["DELETE"])
+    @login_required
+    def api_delete_prospect(prospect_id: int):
+        """RNCP: CRUD Delete (soft-archive pour conservation métier)"""
+        prospect = get_prospect_by_id(prospect_id)
+        if not prospect:
+            return err("Prospect introuvable", 404)
+        try:
+            update_prospect_statut(prospect_id, "archive")
+            return ok({"statut": "archive"}, "Prospect archivé (soft-delete)")
+        except Exception as e:
+            return err(f"Archivage impossible: {e}", 500)

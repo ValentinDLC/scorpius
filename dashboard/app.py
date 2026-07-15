@@ -159,25 +159,81 @@ def login():
 
     if request.method == "POST":
         if request.is_json:
-            password = (request.get_json() or {}).get("password", "")
+            payload = request.get_json(silent=True) or {}
+            password = payload.get("password", "") or ""
+            email = payload.get("email", "") or ""
         else:
-            password = request.form.get("password", "")
+            password = request.form.get("password", "") or ""
+            email = request.form.get("email", "") or ""
+
+        password = str(password)
+        email = (email or "").strip().lower()
+
+        if email:
+            from storage.users import get_user_by_email, verify_user_password
+            user = get_user_by_email(email)
+            if user and verify_user_password(user, password):
+                session["authenticated"] = True
+                session.permanent = True
+                session["user_id"] = int(user["id"])
+                session["user_nom"] = user.get("nom") or "Utilisateur"
+                if request.is_json:
+                    return ok(message="Connecté")
+                flash("Connexion réussie.", "success")
+                return redirect(url_for("missions"))
+            if request.is_json:
+                return err("Email ou mot de passe incorrect", 401)
+            flash("Email ou mot de passe incorrect.", "error")
+            return render_template("login.html", theme=get_theme())
 
         expected = os.getenv("SCORPIUS_PASSWORD", "scorpius")
-
         if password == expected:
             session["authenticated"] = True
             session.permanent = True
+            session["user_id"] = 0
+            session["user_nom"] = "Admin"
             if request.is_json:
                 return ok(message="Connecté")
             flash("Connexion réussie.", "success")
             return redirect(url_for("missions"))
-        else:
-            if request.is_json:
-                return err("Mot de passe incorrect", 401)
-            flash("Mot de passe incorrect.", "error")
+
+        if request.is_json:
+            return err("Mot de passe incorrect", 401)
+        flash("Mot de passe incorrect.", "error")
+        return render_template("login.html", theme=get_theme())
 
     return render_template("login.html", theme=get_theme())
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if session.get("authenticated"):
+        return redirect(url_for("missions"))
+
+    if request.method == "POST":
+        nom = (request.form.get("nom") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm_password") or ""
+
+        if not nom or not email or not password:
+            flash("Nom, email et mot de passe sont requis.", "error")
+            return render_template("register.html", theme=get_theme())
+
+        if password != confirm:
+            flash("Les mots de passe ne correspondent pas.", "error")
+            return render_template("register.html", theme=get_theme())
+
+        from storage.users import create_user
+        user_id = create_user(nom=nom, email=email, password=password)
+        if not user_id:
+            flash("Impossible de créer le compte (email déjà utilisé ?).", "error")
+            return render_template("register.html", theme=get_theme())
+
+        flash("Compte créé ✅ Vous pouvez vous connecter.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html", theme=get_theme())
 
 
 @app.route("/logout")
@@ -952,5 +1008,3 @@ if __name__ == "__main__":
     """)
 
     # Run
-port = int(os.getenv("PORT", 8080))  # Force 8080
-app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)

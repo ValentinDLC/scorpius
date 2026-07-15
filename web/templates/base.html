@@ -10,7 +10,7 @@
 </head>
 <body>
 <header class="app-header">
-    <a href="{{ url_for('missions') }}" class="app-brand">🦂 Scorpius</a>
+    <a href="{{ url_for('missions') }}" class="app-brand" aria-label="Accueil Scorpius">🦂 Scorpius</a>
     {% if session.get('authenticated') %}
     <ul class="nav-desktop">
         <li><a href="{{ url_for('missions') }}">Missions</a></li>
@@ -19,9 +19,9 @@
         <li><a href="{{ url_for('settings') }}">Settings</a></li>
     </ul>
     <div style="display:flex; gap:0.5rem;">
-        <button id="btn-install-pwa" class="btn" style="display:none;">📲 Installer</button>
-        <button onclick="toggleTheme()" class="btn btn-ghost">☀️/🌙</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-ghost nav-desktop">Quitter</a>
+        <button id="btn-install-pwa" aria-label="Installer l'application PWA" class="btn" style="display:none;">📲 Installer</button>
+        <button onclick="toggleTheme()" aria-label="Changer le thème clair/sombre" class="btn btn-ghost">☀️/🌙</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-ghost nav-desktop" aria-label="Se déconnecter">Quitter</a>
     </div>
     {% endif %}
 </header>
@@ -29,7 +29,7 @@
     {% block content %}{% endblock %}
 </main>
 {% if session.get('authenticated') %}
-<nav class="nav-mobile">
+<nav class="nav-mobile" aria-label="Navigation mobile">
     <a href="{{ url_for('missions') }}">📋<span>Missions</span></a>
     <a href="{{ url_for('prospects') }}">🎯<span>Prospects</span></a>
     <a href="{{ url_for('stats') }}">📊<span>Stats</span></a>

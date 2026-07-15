@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% block title %}Prospects — Scorpius{% endblock %}
+{% block content %}
+<style>
+.prospects-container{max-width:1200px;margin:0 auto;padding:1.5rem;padding-bottom:100px}
+.prospects-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+.prospects-header h1{font-size:1.5rem;font-weight:bold}
+.filters-card{background:var(--bg2,#f5f5f5);border:1px solid var(--border,#e0e0e0);border-radius:8px;padding:1rem;margin-bottom:1.5rem}
+.filters-row{display:flex;flex-wrap:wrap;gap:1rem}
+.prospect-card{background:var(--bg2,#fff);border:1px solid var(--border,#e0e0e0);border-radius:8px;padding:1rem;margin-bottom:1rem;cursor:pointer;transition:box-shadow .2s}
+.prospect-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.prospect-header{display:flex;justify-content:space-between;align-items:flex-start}
+.prospect-info{flex:1}
+.prospect-name{font-weight:bold;font-size:1.1rem;margin-bottom:.5rem}
+.prospect-address{color:var(--text2,#666);font-size:.9rem;margin-bottom:.5rem}
+.prospect-meta{display:flex;gap:1rem;font-size:.85rem;flex-wrap:wrap}
+.prospect-audit{text-align:right}
+.prospect-audit-icons{display:flex;gap:.5rem;margin-top:.5rem}
+.badge{display:inline-block;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:600}
+.badge-success{background:#d4edda;color:#155724}
+.badge-warning{background:#fff3cd;color:#856404}
+.badge-danger{background:#f8d7da;color:#721c24}
+.badge-info{background:#d1ecf1;color:#0c5460}
+.btn{display:inline-block;padding:.5rem 1rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;text-decoration:none;font-size:.9rem}
+.btn-primary{background:#7c5cbf;color:white}
+.btn-primary:hover{opacity:.9}
+.btn-secondary{background:#6c757d;color:white}
+.btn-ghost{background:transparent;border:1px solid var(--border,#e0e0e0);color:var(--text,#333)}
+.btn-sm{padding:.35rem .65rem;font-size:.85rem}
+.btn-full{width:100%}
+.input{padding:.5rem;border:1px solid var(--border,#e0e0e0);border-radius:6px;background:var(--bg,#fff);color:var(--text,#333);min-width:150px}
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal.hidden{display:none}
+.modal-content{background:var(--bg2,#fff);border-radius:12px;padding:1.5rem;max-width:500px;width:90%;max-height:90vh;overflow-y:auto}
+.modal-lg{max-width:700px}
+.label{display:block;font-size:.85rem;color:var(--text2,#666);margin-bottom:.25rem}
+.space-y-4{}
+.space-y-4>*+*{margin-top:1rem}
+.grid{display:grid;gap:1rem}
+.grid-cols-2{grid-template-columns:repeat(2,1fr)}
+.grid-cols-4{grid-template-columns:repeat(4,1fr)}
+.text-muted{color:var(--text2,#666)}
+.text-success{color:#28a745}
+.text-danger{color:#dc3545}
+.text-warning{color:#ffc107}
+.spinner{border:3px solid var(--border,#e0e0e0);border-top:3px solid #7c5cbf;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:3rem 1rem}
+.empty-state-icon{font-size:4rem;margin-bottom:1rem}
+@media(max-width:768px){.grid-cols-2,.grid-cols-4{grid-template-columns:1fr}.prospect-header{flex-direction:column;gap:1rem}.prospect-audit{text-align:left}}
+</style>
+
+<div class="prospects-container">
+    <div class="prospects-header">
+        <h1>🎯 Prospects</h1>
+        <button id="btn-nouvelle-recherche" class="btn btn-primary">🔍 Nouvelle recherche</button>
+    </div>
+
+    <div class="filters-card">
+        <div class="filters-row">
+            <select id="filtre-statut" class="input">
+                <option value="">Tous les statuts</option>
+                <option value="a_appeler">📞 A appeler</option>
+                <option value="appele">✅ Appele</option>
+                <option value="relance">🔄 Relance</option>
+                <option value="gagne">🎉 Gagne</option>
+                <option value="perdu">❌ Perdu</option>
+            </select>
+            <select id="filtre-score" class="input">
+                <option value="">Tous les scores</option>
+                <option value="high">🟢 Excellent (60+)</option>
+                <option value="medium">🟡 Moyen (40-59)</option>
+                <option value="low">🔴 Faible (-40)</option>
+            </select>
+            <select id="filtre-sans-site" class="input">
+                <option value="">Tous</option>
+                <option value="1">🌐 Sans site web</option>
+                <option value="0">Avec site web</option>
+            </select>
+            <button id="btn-actualiser" class="btn btn-ghost">🔄 Actualiser</button>
+        </div>
+    </div>
+
+    <div id="prospects-list" class="space-y-4"></div>
+</div>
+
+<!-- MODAL RECHERCHE -->
+<div id="search-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="prospects-header">
+            <h2>🔍 Rechercher des prospects</h2>
+            <button id="btn-close-search" class="btn btn-ghost">✕</button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="label">Secteur</label>
+                <input type="text" id="search-secteur" class="input" style="width:100%" placeholder="ex: restaurants, boulangeries...">
+            </div>
+            <div>
+                <label class="label">Ville</label>
+                <input type="text" id="search-ville" class="input" style="width:100%" placeholder="ex: Paris, Lyon...">
+            </div>
+            <div class="grid grid-cols-2">
+                <div>
+                    <label class="label">Rayon (km)</label>
+                    <input type="number" id="search-rayon" class="input" style="width:100%" value="10" min="1" max="50">
+                </div>
+                <div>
+                    <label class="label">Nombre max</label>
+                    <input type="number" id="search-limit" class="input" style="width:100%" value="10" min="1" max="20">
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem">
+                <input type="checkbox" id="search-sans-site">
+                <label for="search-sans-site">🌐 Prioriser sans site web</label>
+            </div>
+            <button id="btn-lancer-recherche" class="btn btn-primary btn-full">🚀 Lancer la recherche</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DETAIL PROSPECT -->
+<div id="prospect-modal" class="modal hidden">
+    <div class="modal-content modal-lg">
+        <div class="prospects-header">
+            <h2 id="prospect-nom">📋 Detail</h2>
+            <button id="btn-close-prospect" class="btn btn-ghost">✕</button>
+        </div>
+        <div id="prospect-detail" class="space-y-4"></div>
+
+        <!-- Argumentaire d'appel -->
+        <div id="argumentaire-section" style="margin-top:1rem;display:none">
+            <div style="background:var(--bg3,#f5f5f5);border-left:3px solid var(--primary,#7c5cbf);
+                        border-radius:6px;padding:1rem;font-size:0.9rem;line-height:1.6;
+                        color:var(--text1)">
+                <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;
+                            letter-spacing:0.05em;color:var(--primary,#7c5cbf);margin-bottom:0.5rem">
+                    💬 Argumentaire suggéré
+                </div>
+                <div id="argumentaire-texte" style="font-style:italic"></div>
+                <div id="argumentaire-loading" style="color:var(--text2);font-size:0.85rem">
+                    ⏳ Génération en cours...
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 space-y-4" style="margin-top:1.5rem">
+            <a id="btn-call" href="#" class="btn btn-primary btn-full">📞 Appeler</a>
+            <a id="btn-maps" href="#" target="_blank" class="btn btn-secondary btn-full">🗺️ Maps</a>
+        </div>
+        <div class="grid grid-cols-4 space-y-4" style="margin-top:0.5rem">
+            <button id="btn-statut-appele" class="btn btn-sm btn-primary">✅ Appele</button>
+            <button id="btn-statut-relance" class="btn btn-sm btn-warning">🔄 Relance</button>
+            <button id="btn-statut-gagne" class="btn btn-sm btn-success">🎉 Gagne</button>
+            <button id="btn-statut-perdu" class="btn btn-sm btn-danger">❌ Perdu</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var currentProspectId = null;
+
+    function getScoreClass(s) {
+        return s >= 60 ? 'success' : (s >= 40 ? 'warning' : 'danger');
+    }
+
+    function getStatutClass(s) {
+        var m = {a_appeler:'info', appele:'success', relance:'warning', gagne:'success', perdu:'danger'};
+        return m[s] || 'info';
+    }
+
+    function getStatutLabel(s) {
+        var m = {a_appeler:'A appeler', appele:'Appele', relance:'Relance', gagne:'Gagne', perdu:'Perdu'};
+        return m[s] || s;
+    }
+
+    function escapeHtml(t) {
+        if (!t) return '';
+        return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function openSearchModal() {
+        document.getElementById('search-modal').classList.remove('hidden');
+    }
+
+    function closeSearchModal() {
+        document.getElementById('search-modal').classList.add('hidden');
+    }
+
+    function closeProspectModal() {
+        document.getElementById('prospect-modal').classList.add('hidden');
+        currentProspectId = null;
+    }
+
+    function resetFilters() {
+        document.getElementById('filtre-statut').value = '';
+        document.getElementById('filtre-score').value = '';
+        document.getElementById('filtre-sans-site').value = '';
+        loadProspects();
+    }
+
+    async function updateStatut(statut) {
+        if (!currentProspectId) return;
+        var res = await fetch('/api/prospects/' + currentProspectId + '/statut', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({statut: statut})
+        });
+        var data = await res.json();
+        if (data.ok) {
+            alert('Statut mis a jour: ' + getStatutLabel(statut));
+            closeProspectModal();
+            loadProspects();
+        } else {
+            alert('Erreur: ' + data.message);
+        }
+    }
+
+    async function openProspectDetail(id) {
+        currentProspectId = id;
+        // Reset argumentaire
+        var argSection = document.getElementById('argumentaire-section');
+        var argTexte = document.getElementById('argumentaire-texte');
+        var argLoading = document.getElementById('argumentaire-loading');
+        if (argSection) {
+            argSection.style.display = 'none';
+            argTexte.textContent = '';
+            argLoading.style.display = 'block';
+        }
+
+        var res = await fetch('/api/prospects/' + id);
+        var data = await res.json();
+        if (!data.ok) return;
+        var p = data.data;
+        document.getElementById('prospect-nom').textContent = p.nom;
+        var siteHtml = p.url_site
+            ? '<a href="' + escapeHtml(p.url_site) + '" target="_blank">' + escapeHtml(p.url_site) + '</a>'
+            : '<span class="text-warning">Aucun</span>';
+        function auditBadge(ok, labelOk, labelKo) {
+            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
+        }
+        var perfScore = p.audit_performance || 0;
+        var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
+        function auditBadge(ok, labelOk, labelKo) {
+            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
+        }
+        var perfScore = p.audit_performance || 0;
+        var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
+        var auditHtml = '<div class="filters-card" style="margin-top:1rem">'
+            + '<h4 style="margin-bottom:0.75rem">📊 Audit — Score : <span class="badge badge-' + scoreCls + '">' + p.score_audit + '/100</span></h4>'
+            + '<div class="grid grid-cols-2" style="gap:0.5rem">'
+            + '<div><span class="label">📱 Mobile</span><br>' + auditBadge(p.audit_mobile, 'Optimisé', 'Non optimisé') + '</div>'
+            + '<div><span class="label">⚡ Perf</span><br><span class="' + (perfScore > 50 ? 'text-success' : 'text-danger') + '">' + (perfScore > 0 ? perfScore + '/100' : '⚠️ N/A') + '</span></div>'
+            + '<div><span class="label">🔍 SEO</span><br><span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_seo + '/100</span></div>'
+            + '<div><span class="label">🗺️ GMB</span><br>' + auditBadge(p.audit_gmb, 'Présent', 'Absent') + '</div>'
+            + '</div>'
+            + '<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text2)">'
+            + 'SEO : ' + (p.seo_title ? '✅' : '❌') + ' Title '
+            + (p.seo_meta_description ? '✅' : '❌') + ' Meta '
+            + (p.seo_h1 ? '✅' : '❌') + ' H1'
+            + '</div></div>';
+        document.getElementById('prospect-detail').innerHTML =
+            '<div class="grid grid-cols-2">'
+            + '<div><div class="label">Adresse</div><div>' + escapeHtml(p.adresse) + '</div></div>'
+            + '<div><div class="label">Telephone</div><div>' + (p.telephone || 'Non disponible') + '</div></div>'
+            + '<div><div class="label">Site web</div><div>' + siteHtml + '</div></div>'
+            + '<div><div class="label">Secteur</div><div>' + escapeHtml(p.secteur || 'N/A') + '</div></div>'
+            + '<div><div class="label">Ville</div><div>' + escapeHtml(p.ville || 'N/A') + '</div></div>'
+            + '<div><div class="label">Google Maps</div><div><a href="' + (p.google_maps_url || '#') + '" target="_blank">Voir sur Maps</a></div></div>'
+            + '</div>' + auditHtml;
+        document.getElementById('btn-call').href = p.telephone ? 'tel:' + p.telephone : '#';
+
+        // Charger l'argumentaire en arrière-plan
+        if (argSection) {
+            argSection.style.display = 'block';
+            argTexte.textContent = '';
+            argLoading.style.display = 'block';
+        }
+        fetch('/api/prospects/' + id + '/argumentaire')
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (argSection) {
+                    argLoading.style.display = 'none';
+                    if (data.ok && data.data && data.data.argumentaire) {
+                        argTexte.textContent = data.data.argumentaire;
+                    } else {
+                        argTexte.textContent = "Argumentaire non disponible.";
+                    }
+                }
+            })
+            .catch(function(){
+                if (argSection) {
+                    argLoading.style.display = 'none';
+                    argTexte.textContent = "Erreur lors de la génération.";
+                }
+            });
+        document.getElementById('btn-maps').href = p.google_maps_url || '#';
+        document.getElementById('prospect-modal').classList.remove('hidden');
+    }
+
+    async function searchProspects() {
+        var secteur = document.getElementById('search-secteur').value;
+        var ville = document.getElementById('search-ville').value;
+        var limit = document.getElementById('search-limit').value;
+        var btn = document.getElementById('btn-lancer-recherche');
+        btn.disabled = true;
+        btn.textContent = 'Recherche en cours...';
+        try {
+            var res = await fetch('/api/prospects/search', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: secteur + ' ' + ville, limit: parseInt(limit)})
+            });
+            var data = await res.json();
+            if (data.ok) {
+                alert('OK: ' + data.message);
+                closeSearchModal();
+                loadProspects();
+            } else {
+                alert('Erreur: ' + data.message);
+            }
+        } catch(err) {
+            alert('Erreur reseau: ' + err.message);
+        }
+        btn.disabled = false;
+        btn.textContent = 'Lancer la recherche';
+    }
+
+    async function loadProspects() {
+        var statut = document.getElementById('filtre-statut').value;
+        var sansSite = document.getElementById('filtre-sans-site').value;
+        var url = '/api/prospects?limit=100';
+        if (statut) url += '&statut=' + statut;
+        var container = document.getElementById('prospects-list');
+        container.innerHTML = '<div class="empty-state"><div class="spinner"></div><p class="text-muted">Chargement...</p></div>';
+        try {
+            var res = await fetch(url);
+            var data = await res.json();
+            if (!data.ok || !data.data || data.data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><p class="text-muted">Aucun prospect.</p><button id="btn-premiere-recherche" class="btn btn-primary" style="margin-top:1rem">Premiere recherche</button></div>';
+                var btnPremiere = document.getElementById('btn-premiere-recherche');
+                if (btnPremiere) btnPremiere.addEventListener('click', openSearchModal);
+                return;
+            }
+            var prospects = data.data;
+            if (sansSite === '1') prospects = prospects.filter(function(p){ return !p.url_site || p.url_site === ''; });
+            else if (sansSite === '0') prospects = prospects.filter(function(p){ return p.url_site && p.url_site !== ''; });
+            var scoreFilter = document.getElementById('filtre-score').value;
+            if (scoreFilter === 'high') prospects = prospects.filter(function(p){ return p.score_audit >= 60; });
+            else if (scoreFilter === 'medium') prospects = prospects.filter(function(p){ return p.score_audit >= 40 && p.score_audit < 60; });
+            else if (scoreFilter === 'low') prospects = prospects.filter(function(p){ return p.score_audit < 40; });
+            if (prospects.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p class="text-muted">Aucun prospect ne correspond aux filtres.</p><button id="btn-reset" class="btn btn-ghost" style="margin-top:1rem">Reinitialiser</button></div>';
+                document.getElementById('btn-reset').addEventListener('click', resetFilters);
+                return;
+            }
+            container.innerHTML = prospects.map(function(p) {
+                return '<div class="prospect-card" data-id="' + p.id + '">'
+                    + '<div class="prospect-header">'
+                    + '<div class="prospect-info">'
+                    + '<div class="prospect-name">' + escapeHtml(p.nom)
+                    + ' <span class="badge badge-' + getScoreClass(p.score_audit) + '">' + p.score_audit + '/100</span>'
+                    + ' <span class="badge badge-' + getStatutClass(p.statut) + '">' + getStatutLabel(p.statut) + '</span>'
+                    + '</div>'
+                    + '<div class="prospect-address">📍 ' + escapeHtml(p.adresse) + '</div>'
+                    + '</div>'
+                    + '<div class="prospect-audit">'
+                    + '<div class="prospect-audit-icons">'
+                    + '<span class="' + (p.audit_mobile ? 'text-success' : 'text-danger') + '">📱</span>'
+                    + '<span class="' + (p.audit_performance > 50 ? 'text-success' : 'text-danger') + '">⚡</span>'
+                    + '<span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">🔍</span>'
+                    + '<span class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '">📍</span>'
+                    + '</div></div></div></div>';
+            }).join('');
+            container.querySelectorAll('.prospect-card').forEach(function(card) {
+                card.addEventListener('click', function() {
+                    openProspectDetail(parseInt(this.dataset.id));
+                });
+            });
+        } catch(err) {
+            console.error(err);
+            container.innerHTML = '<div class="empty-state"><p class="text-danger">Erreur de chargement</p><button id="btn-retry" class="btn btn-ghost" style="margin-top:1rem">Reessayer</button></div>';
+            document.getElementById('btn-retry').addEventListener('click', loadProspects);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProspects();
+
+        document.getElementById('btn-nouvelle-recherche').addEventListener('click', openSearchModal);
+        document.getElementById('btn-actualiser').addEventListener('click', loadProspects);
+        document.getElementById('btn-close-search').addEventListener('click', closeSearchModal);
+        document.getElementById('btn-close-prospect').addEventListener('click', closeProspectModal);
+        document.getElementById('btn-lancer-recherche').addEventListener('click', searchProspects);
+        document.getElementById('filtre-statut').addEventListener('change', loadProspects);
+        document.getElementById('filtre-score').addEventListener('change', loadProspects);
+        document.getElementById('filtre-sans-site').addEventListener('change', loadProspects);
+        document.getElementById('btn-statut-appele').addEventListener('click', function(){ updateStatut('appele'); });
+        document.getElementById('btn-statut-relance').addEventListener('click', function(){ updateStatut('relance'); });
+        document.getElementById('btn-statut-gagne').addEventListener('click', function(){ updateStatut('gagne'); });
+        document.getElementById('btn-statut-perdu').addEventListener('click', function(){ updateStatut('perdu'); });
+    });
+})();
+</script>
+{% endblock %}

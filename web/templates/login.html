@@ -39,6 +39,18 @@
 
         <form method="POST" action="{{ url_for('login') }}">
             <div class="form-group">
+                <label for="email">Email (optionnel)</label>
+                <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    placeholder="vous@exemple.com"
+                    autocomplete="email"
+                >
+            </div>
+
+
+            <div class="form-group">
                 <label for="password">Mot de passe</label>
                 <input
                     id="password"
@@ -53,7 +65,10 @@
             <button type="submit" class="btn btn-primary btn-full">
                 Se connecter
             </button>
-        </form>
+                <div style="text-align:center; margin-top:1rem; font-size:0.9rem; color: var(--text2);">
+            <a href="{{ url_for('register') }}">Créer un compte</a>
+        </div>
+</form>
 
         <div style="
             margin-top: 1rem;
