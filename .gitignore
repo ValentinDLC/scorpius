@@ -52,3 +52,10 @@ __pycache__/
 models/
 data/voice_profiles/
 data/voice_profile_me.json
+
+# Sauvegardes locales créées pendant les modifications
+*.bak
+*.bak.*
+*.old
+*.backup
+*.backup.*
