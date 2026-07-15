@@ -20,6 +20,7 @@ from flask import (
     session, redirect, url_for, flash, send_from_directory
 )
 from dotenv import load_dotenv
+import storage.db as storage_db
 
 from config.loader import get_config
 from storage.db import (
@@ -834,12 +835,18 @@ if __name__ == "__main__":
     init_db()
     init_prospects_db()
 
+    db_label = (
+        "SQLite local (fallback)"
+        if storage_db._using_sqlite
+        else "PostgreSQL (Supabase)"
+    )
+
     print(f"""
 ╔══════════════════════════════════════════╗
 ║       Scorpius v2 — Dashboard PWA        ║
 ╠══════════════════════════════════════════╣
 ║  URL  : http://localhost:{port}             ║
-║  DB   : PostgreSQL (Supabase)             ║
+║  DB   : {db_label:<34}║
 ╚══════════════════════════════════════════╝
     """)
 
