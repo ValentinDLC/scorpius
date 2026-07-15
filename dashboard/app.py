@@ -133,12 +133,12 @@ def health():
 
 @app.route("/manifest.json")
 def manifest():
-    return send_from_directory("static", "manifest.json")
+    return send_from_directory(app.static_folder, "manifest.json")
 
 
 @app.route("/sw.js")
 def service_worker():
-    resp = send_from_directory("static", "sw.js")
+    resp = send_from_directory(app.static_folder, "sw.js")
     resp.headers["Content-Type"] = "application/javascript"
     resp.headers["Service-Worker-Allowed"] = "/"
     return resp
@@ -266,12 +266,40 @@ def voice_login():
 @login_required
 def missions():
     from storage.prospects import list_prospects
-    user_id = session.get("user_id", 0)
-    missions_list = list_prospects(user_id=user_id, statut="mission", limit=1000)
+
+    # Une session authentifiée doit toujours avoir un utilisateur identifié.
+    # On ne bascule surtout pas automatiquement vers user_id=0.
+    user_id = session.get("user_id")
+    if user_id is None:
+        session.clear()
+        flash("Session invalide. Merci de vous reconnecter.", "error")
+        return redirect(url_for("login"))
+
+    missions_list = list_prospects(
+        user_id=int(user_id),
+        statut="mission",
+        limit=1000,
+    )
+
+    # Sécurise le rendu HTML même si une ancienne ligne de base est incomplète.
+    # Les données restent des prospects, pas des anciennes missions freelance.
+    for mission in missions_list:
+        mission.setdefault("id", 0)
+        mission.setdefault("nom", "Entreprise sans nom")
+        mission.setdefault("score_audit", 0)
+        mission.setdefault("secteur", "")
+        mission.setdefault("ville", "")
+        mission.setdefault("telephone", "")
+        mission.setdefault("url_site", "")
+        mission.setdefault("google_maps_url", "")
+        mission.setdefault("audit_mobile", False)
+        mission.setdefault("audit_gmb", False)
+        mission.setdefault("seo_title", False)
+
     return render_template(
         "missions.html",
-        theme    = get_theme(),
-        missions = missions_list,
+        theme=get_theme(),
+        missions=missions_list,
     )
 
 
@@ -850,4 +878,4 @@ if __name__ == "__main__":
 ╚══════════════════════════════════════════╝
     """)
 
-    # Run
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
