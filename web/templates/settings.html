@@ -1,181 +1,117 @@
 {% extends "base.html" %}
 
-{% block title %}Scorpius — Settings{% endblock %}
+{% block title %}Scorpius — Réglages{% endblock %}
 
 {% block content %}
 
 <section class="page-header">
     <div>
-        <h1 class="page-title">Settings</h1>
+        <h1 class="page-title">⚙️ Réglages</h1>
         <p class="page-subtitle">
-            Configuration de Scorpius
+            Préférences et informations de votre espace de prospection.
         </p>
     </div>
 </section>
 
 <section class="card" style="margin-bottom: 1rem;">
-    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
-        Profil freelancer
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
+        🎯 Méthode de travail
     </h2>
 
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <div>
-            <div style="color: var(--text2); font-size: 0.8rem;">Métier</div>
-            <strong>{{ profil.metier }}</strong>
-        </div>
+    <p style="color: var(--text2); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem;">
+        Scorpius est actuellement configuré pour la recherche et le suivi
+        d'entreprises à prospecter.
+    </p>
 
-        <div>
-            <div style="color: var(--text2); font-size: 0.8rem;">Langue</div>
-            <strong>{{ profil.langue }}</strong>
-        </div>
-
-        <div>
-            <div style="color: var(--text2); font-size: 0.8rem;">Budget minimum</div>
-            <strong>{{ profil.budget_min | format_euros }}</strong>
-        </div>
-
-        <div>
-            <div style="color: var(--text2); font-size: 0.8rem;">Compétences</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem;">
-                {% for c in profil.competences %}
-                <span class="badge badge-proposee">{{ c }}</span>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="card" style="margin-bottom: 1rem;">
-    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
-        LLM
-    </h2>
-
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <div>
-            <div style="color: var(--text2); font-size: 0.8rem;">Provider</div>
-            <strong>{{ llm.provider }}</strong>
-        </div>
-
-        <div>
-            <div style="color: var(--text2); font-size: 0.8rem;">Modèle</div>
-            <strong>{{ llm.model }}</strong>
-        </div>
-    </div>
-</section>
-
-<section class="card" style="margin-bottom: 1rem;">
-    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
-        Plateformes actives
-    </h2>
-
-    {% if plateformes %}
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            {% for p in plateformes %}
-            {% set nom = p.url.split('/')[2] | replace('www.', '') | replace('.com', '') | replace('.fr', '') %}
-            <div class="plateforme-item" data-plateforme="{{ nom }}" style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 1rem;
-                border: 1px solid var(--border);
-                border-radius: 10px;
-                padding: 0.9rem;
-            ">
-                <div style="min-width: 0; flex: 1;">
-                    <div style="
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        font-size: 0.9rem;
-                        font-weight: 600;
-                        margin-bottom: 0.2rem;
-                    ">
-                        {{ p.url }}
-                    </div>
-
-                    <div style="font-size: 0.75rem; color: var(--text2); margin-bottom: 0.5rem;">
-                        Tier {{ p.tier or 1 }} • {{ p.auth_mode or "browser_cookies" }}{% if p.domain %} • {{ p.domain }}{% endif %}
-                    </div>
-
-                    <span class="badge" id="status-{{ nom }}">
-                        ⏳ Vérification...
-                    </span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
-                    {% if p.actif %}
-                        <span class="badge badge-en_cours">Active</span>
-                    {% else %}
-                        <span class="badge badge-refusee">Inactive</span>
-                    {% endif %}
-
-                    <button
-                        type="button"
-                        class="btn"
-                        id="btn-connect-{{ nom }}"
-                        onclick="connecterPlateforme('{{ nom }}')"
-                        style="padding: 0.55rem 0.8rem; font-size: 0.85rem;"
-                    >
-                        🔐 Connecter
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn"
-                        id="btn-import-{{ nom }}"
-                        onclick="importerCookiesPlateforme('{{ nom }}')"
-                        style="padding: 0.55rem 0.8rem; font-size: 0.85rem;"
-                    >
-                        🍪 Importer cookies
-                    </button>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p style="color: var(--text2); font-size: 0.9rem;">
-            Aucune plateforme configurée.
-        </p>
-    {% endif %}
-</section>
-<section class="card" style="margin-bottom: 1rem;">
-    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
-        Worker & système
-    </h2>
-
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <button class="btn btn-primary btn-full" id="btn-trigger-scrape-settings">
-            🔄 Demander un scraping
-        </button>
-
-        <button class="btn btn-ghost btn-full" id="btn-db-status">
-            🗄️ Tester la base de données
-        </button>
-
-        <button class="btn btn-ghost btn-full" id="btn-telegram-test">
-            📲 Tester Telegram
-        </button>
-
-        <button class="btn btn-ghost btn-full" onclick="toggleTheme()">
-            {{ '☀️ Passer en thème clair' if theme == 'dark' else '🌙 Passer en thème sombre' }}
-        </button>
-    </div>
-
-    <div id="settings-result" style="
-        margin-top: 1rem;
+    <ol style="
+        margin: 0;
+        padding-left: 1.3rem;
         color: var(--text2);
-        font-size: 0.85rem;
-        line-height: 1.5;
-    "></div>
+        font-size: 0.9rem;
+        line-height: 1.8;
+    ">
+        <li>Rechercher des entreprises dans <strong>Prospects</strong>.</li>
+        <li>Consulter les coordonnées et les résultats d'audit.</li>
+        <li>Sélectionner les entreprises intéressantes.</li>
+        <li>Les retrouver dans <strong>Missions à venir</strong>.</li>
+        <li>Suivre les appels, relances et résultats commerciaux.</li>
+    </ol>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
+        👤 Compte
+    </h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div>
+            <div style="color: var(--text2); font-size: 0.8rem;">
+                Identifiant de compte
+            </div>
+            <strong>#{{ account_id }}</strong>
+        </div>
+
+        <p style="color: var(--text2); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            Vos prospects, missions à venir et statistiques sont isolés
+            des données des autres comptes.
+        </p>
+    </div>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
+        🎨 Apparence
+    </h2>
+
+    <p style="color: var(--text2); font-size: 0.9rem; margin-bottom: 1rem;">
+        Thème actuellement actif :
+        <strong>{{ "sombre" if theme == "dark" else "clair" }}</strong>
+    </p>
+
+    <button
+        type="button"
+        class="btn btn-primary"
+        onclick="changerTheme()"
+    >
+        {{ "☀️ Passer au thème clair" if theme == "dark" else "🌙 Passer au thème sombre" }}
+    </button>
+</section>
+
+<section class="card" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
+        🗄️ Diagnostic
+    </h2>
+
+    <p style="color: var(--text2); font-size: 0.9rem; margin-bottom: 1rem;">
+        Vérifiez que la base de données est accessible.
+    </p>
+
+    <button
+        type="button"
+        class="btn btn-ghost"
+        id="btn-db-status"
+    >
+        Tester la base de données
+    </button>
+
+    <div
+        id="settings-result"
+        style="
+            margin-top: 1rem;
+            color: var(--text2);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        "
+    ></div>
 </section>
 
 <section class="card">
-    <h2 style="font-size: 1rem; margin-bottom: 1rem;">
-        Installation PWA
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
+        📱 Installation mobile
     </h2>
 
     <p style="color: var(--text2); font-size: 0.9rem; line-height: 1.5;">
-        Sur mobile, ouvre Scorpius dans ton navigateur puis utilise :
+        Vous pouvez installer Scorpius comme une application sur votre téléphone.
     </p>
 
     <ul style="
@@ -185,122 +121,68 @@
         font-size: 0.9rem;
         line-height: 1.7;
     ">
-        <li><strong>Android :</strong> menu Chrome → Ajouter à l'écran d'accueil</li>
-        <li><strong>iPhone :</strong> bouton partage Safari → Sur l'écran d'accueil</li>
-        <li><strong>Desktop :</strong> bouton Installer si disponible</li>
+        <li><strong>Android :</strong> menu Chrome → Ajouter à l'écran d'accueil.</li>
+        <li><strong>iPhone :</strong> Partager dans Safari → Sur l'écran d'accueil.</li>
+        <li><strong>Ordinateur :</strong> utiliser le bouton Installer du navigateur si disponible.</li>
     </ul>
 </section>
 
 <script>
 function setResult(message, type = "info") {
     const el = document.getElementById("settings-result");
-    if (el) el.textContent = message;
-    if (typeof showToast === "function") {
-        showToast(message, type);
-    } else {
-        console.log("[settings]", type, message);
-    }
+
+    if (!el) return;
+
+    el.textContent = message;
+    el.style.color = type === "success"
+        ? "#22c55e"
+        : type === "error"
+            ? "#ef4444"
+            : "var(--text2)";
 }
 
-function setPlateformeBadge(nom, text, className = "badge") {
-    const badge = document.getElementById(`status-${nom}`);
-    if (!badge) return;
-    badge.textContent = text;
-    badge.className = className;
-}
+async function changerTheme() {
+    const themeActuel = "{{ theme }}";
+    const nouveauTheme = themeActuel === "dark" ? "light" : "dark";
 
-window.verifierStatutPlateforme = async function(nom) {
     try {
-        const data = await apiGet(`/api/plateformes/${nom}/status`);
-        const btn = document.getElementById(`btn-connect-${nom}`);
-
-        if (data?.ok && data.data?.connected) {
-            const label = data.data.expires_soon
-                ? "✅ Connecté • expire bientôt"
-                : "✅ Connecté";
-            setPlateformeBadge(nom, label, "badge badge-en_cours");
-            if (btn) btn.textContent = "🔄 Reconnecter";
-        } else {
-            setPlateformeBadge(nom, "❌ Non connecté", "badge badge-refusee");
-            if (btn) btn.textContent = "🔐 Connecter";
-        }
-    } catch (e) {
-        console.error("Erreur statut plateforme", nom, e);
-        setPlateformeBadge(nom, "⚠️ Erreur statut", "badge");
-    }
-};
-
-
-window.importerCookiesPlateforme = async function(nom, browser = "chrome") {
-    try {
-        setResult(`Import des cookies ${nom}...`, "info");
-
-        const resp = await fetch(`/api/plateformes/${nom}/importer-cookies`, {
+        const response = await fetch("/api/settings/theme", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ browser }),
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({theme: nouveauTheme})
         });
 
-        const data = await resp.json();
+        const data = await response.json();
 
-        if (!data?.ok) {
-            setResult(data?.message || `Import cookies impossible pour ${nom}`, "error");
+        if (!data.ok) {
+            setResult(data.message || "Impossible de modifier le thème.", "error");
             return;
         }
 
-        await window.verifierStatutPlateforme(nom);
-        setResult(`Cookies importés pour ${nom}`, "success");
-    } catch (e) {
-        console.error("Erreur import cookies", nom, e);
-        setResult(`Erreur import cookies pour ${nom}`, "error");
+        window.location.reload();
+    } catch (error) {
+        console.error(error);
+        setResult("Erreur réseau lors du changement de thème.", "error");
     }
-};
-
-window.connecterPlateforme = function(nom) {
-    const popup = window.open(
-        `/api/plateformes/${nom}/login-popup`,
-        `login_${nom}`,
-        "width=700,height=900,scrollbars=yes,resizable=yes"
-    );
-
-    if (!popup) {
-        alert("Popup bloquée. Autorise les popups pour Scorpius.");
-        return;
-    }
-
-    setResult(`Popup de connexion ouverte pour ${nom}`, "info");
-
-    const interval = setInterval(async () => {
-        if (popup.closed) {
-            clearInterval(interval);
-            await window.verifierStatutPlateforme(nom);
-            setResult(`Vérification de la session ${nom} terminée`, "success");
-        }
-    }, 800);
-};
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("btn-trigger-scrape-settings")?.addEventListener("click", async () => {
-        const data = await apiPost("/api/scraping/trigger", {});
-        if (data?.ok) setResult("Commande scraping envoyée au worker", "success");
-        else setResult(data?.message || "Erreur scraping", "error");
-    });
-
     document.getElementById("btn-db-status")?.addEventListener("click", async () => {
-        const data = await apiGet("/api/settings/db-status");
-        if (data?.ok && data.data.connected) setResult("Base de données connectée", "success");
-        else setResult("Base de données inaccessible", "error");
-    });
+        setResult("Vérification de la base de données...");
 
-    document.getElementById("btn-telegram-test")?.addEventListener("click", async () => {
-        const data = await apiPost("/api/settings/telegram-test", {});
-        if (data?.ok) setResult("Message Telegram envoyé", "success");
-        else setResult(data?.message || "Erreur Telegram", "error");
-    });
+        try {
+            const response = await fetch("/api/settings/db-status");
+            const data = await response.json();
 
-    document.querySelectorAll(".plateforme-item[data-plateforme]").forEach((el) => {
-        const nom = el.dataset.plateforme;
-        if (nom) window.verifierStatutPlateforme(nom);
+            if (data?.ok && data?.data?.connected) {
+                setResult("Base de données connectée ✅", "success");
+            } else {
+                setResult("Base de données inaccessible.", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            setResult("Erreur réseau lors du test de la base.", "error");
+        }
     });
 });
 </script>
