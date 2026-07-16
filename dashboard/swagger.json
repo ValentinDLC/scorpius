@@ -1,0 +1,619 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Scorpius V2 API",
+    "description": "API de prospection commerciale — recherche, qualification et suivi des entreprises.",
+    "version": "2.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session"
+      }
+    },
+    "schemas": {
+      "Prospect": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "place_id": {
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "secteur": {
+            "type": "string"
+          },
+          "telephone": {
+            "type": "string"
+          },
+          "adresse": {
+            "type": "string"
+          },
+          "ville": {
+            "type": "string"
+          },
+          "url_site": {
+            "type": "string"
+          },
+          "google_maps_url": {
+            "type": "string"
+          },
+          "score_audit": {
+            "type": "integer"
+          },
+          "audit_mobile": {
+            "type": "boolean"
+          },
+          "audit_performance": {
+            "type": "integer"
+          },
+          "audit_seo": {
+            "type": "integer"
+          },
+          "audit_gmb": {
+            "type": "boolean"
+          },
+          "seo_title": {
+            "type": "boolean"
+          },
+          "seo_meta_description": {
+            "type": "boolean"
+          },
+          "seo_h1": {
+            "type": "boolean"
+          },
+          "statut": {
+            "type": "string",
+            "enum": [
+              "a_appeler",
+              "appele",
+              "relance",
+              "mission",
+              "gagne",
+              "perdu",
+              "archive"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {}
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Vérifie que le serveur répond",
+        "tags": [
+          "Système"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Serveur actif"
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "summary": "État de la session courante",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Statut d'authentification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat/prospects/parse": {
+      "post": {
+        "summary": "Parse une requête en langage naturel (secteur, ville, rayon)",
+        "tags": [
+          "Prospects"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "boulangeries à Paris"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Requête parsée avec succès"
+          },
+          "400": {
+            "description": "Message manquant ou parsing impossible"
+          }
+        }
+      }
+    },
+    "/api/prospects/search": {
+      "post": {
+        "summary": "Recherche des entreprises via Google Places et les enregistre comme prospects",
+        "tags": [
+          "Prospects"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "boulangeries à Paris"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "example": 10,
+                    "minimum": 1,
+                    "maximum": 20
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prospects trouvés, enregistrés et audités"
+          },
+          "400": {
+            "description": "Message manquant"
+          },
+          "401": {
+            "description": "Session utilisateur invalide"
+          },
+          "500": {
+            "description": "Erreur lors de la recherche"
+          }
+        }
+      }
+    },
+    "/api/prospects": {
+      "get": {
+        "summary": "Liste les prospects de l'utilisateur connecté",
+        "tags": [
+          "Prospects"
+        ],
+        "parameters": [
+          {
+            "name": "statut",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "a_appeler",
+                "appele",
+                "relance",
+                "mission",
+                "gagne",
+                "perdu"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des prospects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Prospect"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session utilisateur invalide"
+          }
+        }
+      }
+    },
+    "/api/prospects/{prospect_id}": {
+      "get": {
+        "summary": "Récupère un prospect par ID (uniquement s'il appartient au compte connecté)",
+        "tags": [
+          "Prospects"
+        ],
+        "parameters": [
+          {
+            "name": "prospect_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détail du prospect"
+          },
+          "404": {
+            "description": "Prospect introuvable (ou appartenant à un autre compte)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Archive un prospect (statut -> archive)",
+        "tags": [
+          "Prospects"
+        ],
+        "parameters": [
+          {
+            "name": "prospect_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prospect archivé"
+          },
+          "404": {
+            "description": "Prospect introuvable"
+          }
+        }
+      }
+    },
+    "/api/prospects/{prospect_id}/statut": {
+      "patch": {
+        "summary": "Change le statut d'un prospect (ex: passer en mission)",
+        "tags": [
+          "Prospects"
+        ],
+        "parameters": [
+          {
+            "name": "prospect_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "statut": {
+                    "type": "string",
+                    "enum": [
+                      "a_appeler",
+                      "appele",
+                      "relance",
+                      "mission",
+                      "gagne",
+                      "perdu",
+                      "archive"
+                    ]
+                  }
+                },
+                "required": [
+                  "statut"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Statut mis à jour"
+          },
+          "400": {
+            "description": "Champ statut manquant"
+          },
+          "404": {
+            "description": "Prospect introuvable"
+          }
+        }
+      }
+    },
+    "/api/prospects/{prospect_id}/audit": {
+      "post": {
+        "summary": "Relance un audit (mobile, SEO, GMB) pour un prospect",
+        "tags": [
+          "Prospects"
+        ],
+        "parameters": [
+          {
+            "name": "prospect_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit mis à jour"
+          },
+          "404": {
+            "description": "Prospect introuvable"
+          },
+          "500": {
+            "description": "Audit impossible"
+          }
+        }
+      }
+    },
+    "/api/prospects/{prospect_id}/argumentaire": {
+      "get": {
+        "summary": "Génère un argumentaire d'appel pour un prospect",
+        "tags": [
+          "Prospects"
+        ],
+        "parameters": [
+          {
+            "name": "prospect_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Argumentaire généré"
+          },
+          "404": {
+            "description": "Prospect introuvable"
+          },
+          "500": {
+            "description": "Génération impossible"
+          }
+        }
+      }
+    },
+    "/api/stats": {
+      "get": {
+        "summary": "Statistiques du pipeline de prospection de l'utilisateur connecté",
+        "tags": [
+          "Stats"
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistiques (total, missions, score moyen, etc.)"
+          }
+        }
+      }
+    },
+    "/api/settings/theme": {
+      "post": {
+        "summary": "Change le thème (dark/light) de la session",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "theme": {
+                    "type": "string",
+                    "enum": [
+                      "dark",
+                      "light"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thème mis à jour"
+          },
+          "400": {
+            "description": "Thème invalide"
+          }
+        }
+      }
+    },
+    "/api/settings/db-status": {
+      "get": {
+        "summary": "Vérifie la connexion à la base de données",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "État de la connexion DB"
+          }
+        }
+      }
+    },
+    "/api/settings/telegram-test": {
+      "post": {
+        "summary": "Envoie un message Telegram de test",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Message envoyé"
+          },
+          "400": {
+            "description": "Bot invalide ou échec d'envoi"
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "Connexion utilisateur",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connexion réussie, cookie de session posé"
+          },
+          "401": {
+            "description": "Email ou mot de passe invalide"
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "summary": "Création d'un nouveau compte",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compte créé"
+          },
+          "400": {
+            "description": "Email déjà utilisé ou données invalides"
+          }
+        }
+      }
+    }
+  }
+}

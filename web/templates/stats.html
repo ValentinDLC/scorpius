@@ -13,24 +13,24 @@
     </div>
 </section>
 
-<section class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-value">{{ stats.total }}</div>
+<section class="stats-bento">
+    <div class="stat-card stat-card-featured">
+        <div class="stat-value-xl">{{ stats.total }}</div>
         <div class="stat-label">Prospects actifs</div>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-value score-medium">{{ stats.missions }}</div>
+    <div class="stat-card stat-card-wide">
+        <div class="stat-value-lg stat-tint-accent">{{ stats.missions }}</div>
         <div class="stat-label">Missions à venir</div>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-value score-high">{{ stats.a_traiter }}</div>
+    <div class="stat-card stat-card-sm1">
+        <div class="stat-value-md stat-tint-warn">{{ stats.a_traiter }}</div>
         <div class="stat-label">À traiter</div>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-value score-low">{{ stats.sans_site }}</div>
+    <div class="stat-card stat-card-sm2">
+        <div class="stat-value-md stat-tint-danger">{{ stats.sans_site }}</div>
         <div class="stat-label">Sans site web</div>
     </div>
 </section>
@@ -60,7 +60,7 @@
         Pipeline de prospection
     </h2>
 
-    <p style="font-size: 0.85rem; color: var(--text2); margin-bottom: 1rem;">
+    <p style="font-size: 0.85rem; color: var(--text2); margin-bottom: 1.3rem;">
         Suivi des entreprises recherchées, qualifiées et contactées.
     </p>
 
@@ -74,32 +74,16 @@
         ("❌", "Perdus", stats.perdu)
     ] %}
 
-    <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+    <div class="pipeline">
         {% for icon, label, value in rows %}
         {% set pct = (value / stats.total * 100) if stats.total else 0 %}
         <div>
-            <div style="
-                display: flex;
-                justify-content: space-between;
-                font-size: 0.85rem;
-                margin-bottom: 0.3rem;
-            ">
+            <div class="pipeline-row-top">
                 <span>{{ icon }} {{ label }}</span>
                 <strong>{{ value }}</strong>
             </div>
-
-            <div style="
-                height: 8px;
-                background: var(--bg3);
-                border-radius: 999px;
-                overflow: hidden;
-            ">
-                <div style="
-                    height: 100%;
-                    width: {{ pct }}%;
-                    background: var(--accent);
-                    border-radius: 999px;
-                "></div>
+            <div class="pipeline-track">
+                <div class="pipeline-fill" style="width: {{ pct }}%;"></div>
             </div>
         </div>
         {% endfor %}
@@ -108,22 +92,22 @@
 
 <section class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">{{ stats.score_moyen | round(0) | int }}/100</div>
+        <div class="stat-value-lg">{{ stats.score_moyen | round(0) | int }}/100</div>
         <div class="stat-label">Score audit moyen</div>
     </div>
 
     <div class="stat-card">
-        <div class="stat-value">{{ stats.avec_telephone }}</div>
+        <div class="stat-value-lg">{{ stats.avec_telephone }}</div>
         <div class="stat-label">Avec téléphone</div>
     </div>
 
     <div class="stat-card">
-        <div class="stat-value">{{ stats.avec_site }}</div>
+        <div class="stat-value-lg">{{ stats.avec_site }}</div>
         <div class="stat-label">Avec site web</div>
     </div>
 
     <div class="stat-card">
-        <div class="stat-value">{{ stats.taux_selection }}%</div>
+        <div class="stat-value-lg">{{ stats.taux_selection }}%</div>
         <div class="stat-label">Sélectionnés en mission</div>
     </div>
 </section>

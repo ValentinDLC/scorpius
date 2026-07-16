@@ -1,43 +1,147 @@
-<!DOCTYPE html>
-<html lang="fr" data-theme="{{ theme }}">
+<!doctype html>
+<html lang="fr" data-theme="{{ theme or 'dark' }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#7c5cbf">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="/static/css/app.css">
+    <meta charset="utf-8">
     <title>{% block title %}Scorpius{% endblock %}</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1C1917">
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+
+    {% block extra_head %}{% endblock %}
 </head>
+
 <body>
-<header class="app-header">
-    <a href="{{ url_for('missions') }}" class="app-brand" aria-label="Accueil Scorpius">🦂 Scorpius</a>
-    {% if session.get('authenticated') %}
-    <ul class="nav-desktop">
-        <li><a href="{{ url_for('missions') }}">Missions</a></li>
-        <li><a href="{{ url_for('prospects') }}">🎯 Prospects</a></li>
-        <li><a href="{{ url_for('stats') }}">Stats</a></li>
-        <li><a href="{{ url_for('settings') }}">Settings</a></li>
-    </ul>
-    <div style="display:flex; gap:0.5rem;">
-        <button id="btn-install-pwa" aria-label="Installer l'application PWA" class="btn" style="display:none;">📲 Installer</button>
-        <button onclick="toggleTheme()" aria-label="Changer le thème clair/sombre" class="btn btn-ghost">☀️/🌙</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-ghost nav-desktop" aria-label="Se déconnecter">Quitter</a>
-    </div>
-    {% endif %}
-</header>
-<main>
-    {% block content %}{% endblock %}
-</main>
-{% if session.get('authenticated') %}
-<nav class="nav-mobile" aria-label="Navigation mobile">
-    <a href="{{ url_for('missions') }}">📋<span>Missions</span></a>
-    <a href="{{ url_for('prospects') }}">🎯<span>Prospects</span></a>
-    <a href="{{ url_for('stats') }}">📊<span>Stats</span></a>
-    <a href="{{ url_for('settings') }}">⚙️<span>Settings</span></a>
-    <a href="{{ url_for('logout') }}">🚪<span>Quitter</span></a>
-</nav>
+{% set is_auth = session.get("authenticated") %}
+{% set current_path = request.path %}
+
+{% if is_auth %}
+<div class="app-shell">
+
+    <aside class="sidebar">
+        <a href="{{ url_for('dashboard') }}" class="sidebar-brand">
+            <span class="brand-mark">♏</span>
+            <span>Scorpius</span>
+        </a>
+
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}" class="{{ 'active' if current_path == '/dashboard' else '' }}">
+                <span>⌘</span><span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('contacts') }}" class="{{ 'active' if current_path == '/contacts' else '' }}">
+                <span>👥</span><span>Contacts</span>
+            </a>
+            <a href="{{ url_for('pipeline') }}" class="{{ 'active' if current_path == '/pipeline' else '' }}">
+                <span>▦</span><span>Pipeline</span>
+            </a>
+            <a href="{{ url_for('relances') }}" class="{{ 'active' if current_path == '/relances' else '' }}">
+                <span>↻</span><span>Relances</span>
+            </a>
+            <a href="{{ url_for('documents') }}" class="{{ 'active' if current_path == '/documents' else '' }}">
+                <span>□</span><span>Devis & Factures</span>
+            </a>
+
+            <div class="sidebar-separator"></div>
+
+            <a href="{{ url_for('prospects') }}" class="{{ 'active' if current_path == '/prospects' else '' }}">
+                <span>🔍</span><span>Prospects</span>
+            </a>
+            <a href="{{ url_for('missions') }}" class="{{ 'active' if current_path in ['/', '/missions'] else '' }}">
+                <span>🎯</span><span>Missions</span>
+            </a>
+            <a href="{{ url_for('stats') }}" class="{{ 'active' if current_path == '/stats' else '' }}">
+                <span>📊</span><span>Stats</span>
+            </a>
+
+            <div class="sidebar-separator"></div>
+
+            <a href="{{ url_for('pricing') }}" class="{{ 'active' if current_path == '/pricing' else '' }}">
+                <span>✦</span><span>Formules</span>
+            </a>
+            <a href="{{ url_for('profile_settings') }}" class="{{ 'active' if current_path == '/profile-settings' else '' }}">
+                <span>⚙</span><span>Profil</span>
+            </a>
+            <a href="{{ url_for('settings') }}" class="{{ 'active' if current_path == '/settings' else '' }}">
+                <span>⚙️</span><span>Settings</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="app-main">
+        <header class="topbar">
+            <div class="topbar-search">
+                <span>⌕</span>
+                <input type="search" placeholder="Rechercher dans Scorpius...">
+            </div>
+
+            <div class="topbar-profile">
+                <button type="button" class="profile-button" id="profile-menu-button">
+                    <span class="avatar">{{ (session.get("user_nom") or "U")[0:1] }}</span>
+                    <span class="profile-name">{{ session.get("user_nom") or "Utilisateur" }}</span>
+                </button>
+
+                <div class="profile-dropdown hidden" id="profile-dropdown">
+                    <a href="{{ url_for('profile_settings') }}">Profil entreprise</a>
+                    <a href="{{ url_for('settings') }}">Réglages</a>
+                    <a href="{{ url_for('logout') }}">Déconnexion</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+{% else %}
+        <main class="auth-main">
 {% endif %}
-<script src="/static/js/app.js"></script>
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+{% if is_auth %}
+    </div>
+
+    <nav class="nav-mobile">
+        <a href="{{ url_for('dashboard') }}" class="{{ 'active' if current_path == '/dashboard' else '' }}">
+            <span>⌘</span><small>Home</small>
+        </a>
+        <a href="{{ url_for('prospects') }}" class="{{ 'active' if current_path == '/prospects' else '' }}">
+            <span>🔍</span><small>Prospects</small>
+        </a>
+        <a href="{{ url_for('pipeline') }}" class="{{ 'active' if current_path == '/pipeline' else '' }}">
+            <span>▦</span><small>Pipeline</small>
+        </a>
+        <a href="{{ url_for('missions') }}" class="{{ 'active' if current_path in ['/', '/missions'] else '' }}">
+            <span>🎯</span><small>Missions</small>
+        </a>
+        <a href="{{ url_for('settings') }}" class="{{ 'active' if current_path == '/settings' else '' }}">
+            <span>⚙️</span><small>Menu</small>
+        </a>
+    </nav>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("profile-menu-button");
+    const dropdown = document.getElementById("profile-dropdown");
+
+    if (btn && dropdown) {
+        btn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            dropdown.classList.toggle("hidden");
+        });
+
+        document.addEventListener("click", () => {
+            dropdown.classList.add("hidden");
+        });
+    }
+});
+</script>
+
 {% block extra_js %}{% endblock %}
 </body>
 </html>

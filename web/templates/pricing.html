@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Formules{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Nos formules</h1>
+        <p class="page-subtitle">Choisissez le plan adapté à votre prospection.</p>
+    </div>
+</section>
+
+<section class="pricing-grid">
+    <article class="card pricing-card">
+        <h2>Starter</h2>
+        <p class="text-muted" style="margin:.75rem 0;">Pour démarrer.</p>
+        <div class="kpi-value">19€</div>
+        <p class="text-muted">/ mois</p>
+        <ul style="margin:1.5rem 0; padding-left:1.2rem; line-height:1.9;">
+            <li>50 prospects / mois</li>
+            <li>Audits basiques</li>
+            <li>Pipeline simple</li>
+        </ul>
+        <a href="#" class="btn btn-ghost btn-full">Choisir Starter</a>
+    </article>
+
+    <article class="card pricing-card featured">
+        <div class="pricing-badge">Le plus populaire</div>
+        <h2>Pro</h2>
+        <p style="opacity:.8; margin:.75rem 0;">Pour prospecter sérieusement.</p>
+        <div class="kpi-value">49€</div>
+        <p style="opacity:.8;">/ mois</p>
+        <ul style="margin:1.5rem 0; padding-left:1.2rem; line-height:1.9;">
+            <li>500 prospects / mois</li>
+            <li>Audits avancés</li>
+            <li>Pipeline Kanban</li>
+            <li>Relances</li>
+        </ul>
+        <a href="#" class="btn btn-primary btn-full">Choisir Pro</a>
+    </article>
+
+    <article class="card pricing-card">
+        <h2>Élite</h2>
+        <p class="text-muted" style="margin:.75rem 0;">Pour agences et équipes.</p>
+        <div class="kpi-value">99€</div>
+        <p class="text-muted">/ mois</p>
+        <ul style="margin:1.5rem 0; padding-left:1.2rem; line-height:1.9;">
+            <li>Prospects illimités</li>
+            <li>Exports avancés</li>
+            <li>Support prioritaire</li>
+        </ul>
+        <a href="#" class="btn btn-ghost btn-full">Choisir Élite</a>
+    </article>
+</section>
+{% endblock %}

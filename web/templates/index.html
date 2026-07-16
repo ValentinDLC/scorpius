@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Scorpius — Trouvez vos futurs clients locaux</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+        name="description"
+        content="Scorpius aide les freelances et agences web à trouver, auditer et contacter des prospects locaux qualifiés."
+    >
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0B3C2A">
+
+    <!-- Tailwind CDN pour la landing publique uniquement -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        scorpius: {
+                            green: "#0B3C2A",
+                            dark: "#06261B",
+                            cream: "#FDFBF7",
+                            gold: "#D8B76A",
+                            sage: "#8B9A6C",
+                            terracotta: "#BC7F61"
+                        }
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "ui-sans-serif", "system-ui"],
+                        serif: ["Georgia", "ui-serif", "serif"]
+                    },
+                    boxShadow: {
+                        soft: "0 20px 60px rgba(11, 60, 42, 0.12)",
+                        glass: "0 24px 80px rgba(0, 0, 0, 0.20)"
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(18px) saturate(140%);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+        }
+
+        .hero-grid {
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(216, 183, 106, 0.20), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(139, 154, 108, 0.18), transparent 24%);
+        }
+
+        .fake-row {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: rowIn 0.7s ease forwards;
+        }
+
+        .fake-row:nth-child(2) { animation-delay: 0.2s; }
+        .fake-row:nth-child(3) { animation-delay: 0.4s; }
+        .fake-row:nth-child(4) { animation-delay: 0.6s; }
+
+        @keyframes rowIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .audit-toast {
+            opacity: 0;
+            transform: translateY(12px) scale(0.96);
+            animation: toastIn 0.6s ease forwards;
+            animation-delay: 2s;
+        }
+
+        @keyframes toastIn {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .typing-caret::after {
+            content: "|";
+            animation: blink 1s infinite;
+            color: #D8B76A;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+
+<body class="bg-scorpius-cream text-[#1A1C20] antialiased">
+
+<!-- NAV PUBLIC -->
+<nav class="sticky top-0 z-50 bg-[#0B3C2A]/95 text-white backdrop-blur-sm border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2 font-bold text-xl">
+            <span class="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center">♏</span>
+            <span>Scorpius</span>
+        </a>
+
+        <div class="hidden md:flex items-center gap-8 text-sm text-white/75">
+            <a href="#features" class="hover:text-white transition">Fonctionnalités</a>
+            <a href="#ia" class="hover:text-white transition">IA Prospects</a>
+            <a href="#pricing" class="hover:text-white transition">Tarifs</a>
+            <a href="#faq" class="hover:text-white transition">FAQ</a>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('login') }}" class="hidden sm:inline text-sm text-white/80 hover:text-white">
+                Se connecter
+            </a>
+
+            <a
+                href="{{ url_for('register') }}"
+                class="inline-flex items-center rounded-full bg-[#D8B76A] px-5 py-2.5 text-sm font-semibold text-[#0B3C2A] hover:bg-[#E5C87D] transition shadow-lg"
+            >
+                Essai gratuit
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<header class="relative overflow-hidden bg-[#0B3C2A] text-white hero-grid">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
+        <section>
+            <p class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white/80 mb-6">
+                CRM de prospection locale pour freelances web
+            </p>
+
+            <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl leading-tight tracking-tight">
+                Trouvez, auditez et prospectez vos futurs clients locaux
+                <span class="text-[#D8B76A]">en 1 clic.</span>
+            </h1>
+
+            <p class="mt-6 text-lg text-white/75 leading-relaxed max-w-xl">
+                Scorpius identifie les entreprises locales, audite leur présence digitale,
+                calcule un score d’opportunité et prépare votre argumentaire de prospection.
+            </p>
+
+            <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                <a
+                    href="{{ url_for('register') }}"
+                    class="inline-flex justify-center rounded-full bg-[#D8B76A] px-7 py-3.5 font-semibold text-[#0B3C2A] hover:bg-[#E5C87D] transition"
+                >
+                    Démarrer l’essai gratuit
+                </a>
+
+                <a
+                    href="#features"
+                    class="inline-flex justify-center rounded-full border border-white/20 px-7 py-3.5 font-semibold text-white hover:bg-white/10 transition"
+                >
+                    Voir les fonctionnalités
+                </a>
+            </div>
+
+            <p class="mt-5 text-sm text-white/50">
+                Pas de scraping Malt/Codeur. Pas d’automatisation agressive. Juste recherche → audit → score → script.
+            </p>
+        </section>
+
+        <!-- FAUSSE CAPTURE UI -->
+        <section class="relative">
+            <div class="glass-panel rounded-[2rem] p-5 shadow-glass">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <p class="text-sm text-white/55">Prospects audités</p>
+                        <h2 class="text-xl font-semibold">Opportunités locales</h2>
+                    </div>
+                    <span class="rounded-full bg-[#D8B76A]/20 text-[#E5C87D] px-3 py-1 text-sm">
+                        Live
+                    </span>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="fake-row rounded-2xl bg-white/10 border border-white/10 p-4 flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">Boulangerie Saint-Pierre</p>
+                            <p class="text-sm text-white/50">Site non responsive · Paris</p>
+                        </div>
+                        <span class="rounded-full bg-red-300/20 text-red-200 px-3 py-1 text-sm font-semibold">89%</span>
+                    </div>
+
+                    <div class="fake-row rounded-2xl bg-white/10 border border-white/10 p-4 flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">Électricien Bordeaux Centre</p>
+                            <p class="text-sm text-white/50">SEO faible · Bordeaux</p>
+                        </div>
+                        <span class="rounded-full bg-amber-300/20 text-amber-200 px-3 py-1 text-sm font-semibold">72%</span>
+                    </div>
+
+                    <div class="fake-row rounded-2xl bg-white/10 border border-white/10 p-4 flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">Restaurant Le Patio</p>
+                            <p class="text-sm text-white/50">Vitesse lente · Lyon</p>
+                        </div>
+                        <span class="rounded-full bg-emerald-300/20 text-emerald-200 px-3 py-1 text-sm font-semibold">64%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="audit-toast absolute -bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-80 rounded-2xl bg-white text-[#0B3C2A] p-4 shadow-soft border border-black/5">
+                <p class="font-semibold">Audit du site achevé</p>
+                <p class="text-sm text-gray-600">89% d’opportunité détectée sur un prospect local.</p>
+            </div>
+        </section>
+    </div>
+</header>
+
+<!-- FEATURES -->
+<section id="features" class="bg-[#FDFBF7] py-20">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8">
+        <div class="max-w-2xl mb-12">
+            <p class="text-sm font-semibold uppercase tracking-widest text-[#8B9A6C]">
+                Fonctionnalités
+            </p>
+            <h2 class="font-serif text-3xl sm:text-4xl text-[#0B3C2A] mt-3">
+                Tout ce qu’il faut pour préparer une prospection sérieuse.
+            </h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="text-3xl mb-4">📍</div>
+                <h3 class="font-semibold text-xl mb-2">Recherche ciblée</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Extraction locale via Google Places selon un secteur, une ville et un rayon.
+                </p>
+            </article>
+
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="text-3xl mb-4">⚡</div>
+                <h3 class="font-semibold text-xl mb-2">Audit automatique</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Analyse rapide du site : mobile, vitesse, SEO, présence Google Business.
+                </p>
+            </article>
+
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="text-3xl mb-4">🎯</div>
+                <h3 class="font-semibold text-xl mb-2">Score d’opportunité</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Priorisez les entreprises qui ont réellement besoin d’un site ou d’une optimisation.
+                </p>
+            </article>
+
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="text-3xl mb-4">🧠</div>
+                <h3 class="font-semibold text-xl mb-2">Argumentaires IA</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Génération de scripts personnalisés avec un LLM pour préparer vos appels.
+                </p>
+            </article>
+
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="text-3xl mb-4">📞</div>
+                <h3 class="font-semibold text-xl mb-2">Actions rapides</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Appelez, ouvrez Maps, sélectionnez en mission et suivez vos relances.
+                </p>
+            </article>
+
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="text-3xl mb-4">📊</div>
+                <h3 class="font-semibold text-xl mb-2">Pipeline clair</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Suivez vos prospects, vos missions à venir, vos relances et vos conversions.
+                </p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- IA FOCUS -->
+<section id="ia" class="bg-[#0B3C2A] text-white py-20 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-widest text-[#D8B76A]">
+                IA Prospects
+            </p>
+            <h2 class="font-serif text-3xl sm:text-4xl mt-3 mb-6">
+                Une recherche naturelle, pensée pour les indépendants.
+            </h2>
+            <p class="text-white/70 leading-relaxed mb-4">
+                Décrivez simplement ce que vous cherchez. Scorpius transforme votre demande en recherche structurée :
+                secteur, ville, rayon, volume de résultats.
+            </p>
+            <p class="text-white/70 leading-relaxed">
+                Le LLM peut ensuite préparer un argumentaire adapté à la situation réelle du prospect :
+                absence de site, mauvais SEO, lenteur ou problème mobile.
+            </p>
+        </div>
+
+        <div class="glass-panel rounded-[2rem] p-6">
+            <p class="text-white/50 text-sm mb-3">Requête IA</p>
+            <div class="rounded-2xl bg-black/25 border border-white/10 p-5 font-mono text-[#D8B76A]">
+                <span id="typewriter" class="typing-caret"></span>
+            </div>
+
+            <div class="mt-6 space-y-3">
+                <div class="rounded-xl bg-white/10 border border-white/10 p-4">
+                    <p class="text-sm text-white/50">Secteur détecté</p>
+                    <p class="font-semibold">Électriciens</p>
+                </div>
+                <div class="rounded-xl bg-white/10 border border-white/10 p-4">
+                    <p class="text-sm text-white/50">Ville détectée</p>
+                    <p class="font-semibold">Bordeaux</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HISTOIRE -->
+<section class="bg-[#FDFBF7] py-20">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+            <div class="aspect-[4/5] rounded-[2rem] bg-[#0B3C2A] shadow-soft overflow-hidden flex items-center justify-center text-white">
+                <div class="text-center px-8">
+                    <div class="text-6xl mb-4">♏</div>
+                    <p class="text-white/70">
+                        Photo / portrait du créateur à intégrer ici.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="font-serif text-3xl text-[#0B3C2A] mb-4">L'HISTOIRE DERRIÈRE SCORPIUS</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                <strong>Valentin, développeur full-stack, actuellement en formation à Holberton School.</strong>
+            </p>
+            <p class="text-gray-600 leading-relaxed mb-4">
+                L'idée de Scorpius vient d'un constat simple : les freelances juniors en développement web perdent un temps fou à chercher des prospects à la main, sans vraiment savoir lesquels valent le coup d'être contactés, ni quoi leur dire une fois qu'on a leur numéro.
+            </p>
+            <p class="text-gray-600 leading-relaxed mb-4">
+                Scorpius automatise cette étape : il va chercher les entreprises locales via Google Places, audite leur site existant (SEO, mobile, vitesse), calcule un score d'opportunité, et rédige un argumentaire de prospection sur mesure — que le freelance utilise ensuite lui-même, en appel ou en visite.
+            </p>
+            <p class="text-gray-600 leading-relaxed mb-4">
+                C'est un projet que je développe seul, de l'architecture backend jusqu'au dernier écran de l'interface, avec Flask, PostgreSQL, Playwright et un LLM (Groq/Ollama) pour l'extraction et la génération de contenu. Actuellement en v2, avec un périmètre volontairement resserré : pas de scraping de plateformes tierces, pas d'automatisation d'appels, pas de CRM complet — juste la boucle recherche &rarr; audit &rarr; score &rarr; script, bien faite.
+            </p>
+            <p class="text-gray-600 leading-relaxed">
+                L'objectif n'est pas de remplacer le travail commercial du freelance, mais de lui faire gagner l'heure qu'il n'a pas pour le préparer.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="bg-white py-20">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto mb-12">
+            <p class="text-sm font-semibold uppercase tracking-widest text-[#8B9A6C]">
+                Tarifs
+            </p>
+            <h2 class="font-serif text-3xl sm:text-4xl text-[#0B3C2A] mt-3">
+                Des formules simples pour prospecter mieux.
+            </h2>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <article class="rounded-3xl border border-gray-100 p-8 shadow-sm">
+                <h3 class="text-xl font-semibold">Starter</h3>
+                <p class="text-gray-500 mt-2">Pour tester le flux.</p>
+                <p class="text-4xl font-bold mt-6">19€</p>
+                <p class="text-gray-500">/ mois</p>
+                <ul class="mt-6 space-y-3 text-gray-600">
+                    <li>50 prospects / mois</li>
+                    <li>Audits simples</li>
+                    <li>Scripts de prospection</li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="mt-8 inline-flex w-full justify-center rounded-full border border-[#0B3C2A] px-5 py-3 font-semibold text-[#0B3C2A]">
+                    Commencer
+                </a>
+            </article>
+
+            <article class="rounded-3xl bg-[#0B3C2A] text-white p-8 shadow-soft relative">
+                <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#D8B76A] px-4 py-1 text-sm font-semibold text-[#0B3C2A]">
+                    Recommandé
+                </div>
+                <h3 class="text-xl font-semibold">Pro</h3>
+                <p class="text-white/60 mt-2">Pour prospecter sérieusement.</p>
+                <p class="text-4xl font-bold mt-6">49€</p>
+                <p class="text-white/60">/ mois</p>
+                <ul class="mt-6 space-y-3 text-white/75">
+                    <li>500 prospects / mois</li>
+                    <li>Audits avancés</li>
+                    <li>Pipeline et relances</li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="mt-8 inline-flex w-full justify-center rounded-full bg-[#D8B76A] px-5 py-3 font-semibold text-[#0B3C2A]">
+                    Essai gratuit
+                </a>
+            </article>
+
+            <article class="rounded-3xl border border-gray-100 p-8 shadow-sm">
+                <h3 class="text-xl font-semibold">Élite</h3>
+                <p class="text-gray-500 mt-2">Pour agences et équipes.</p>
+                <p class="text-4xl font-bold mt-6">99€</p>
+                <p class="text-gray-500">/ mois</p>
+                <ul class="mt-6 space-y-3 text-gray-600">
+                    <li>Prospects illimités</li>
+                    <li>Exports avancés</li>
+                    <li>Support prioritaire</li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="mt-8 inline-flex w-full justify-center rounded-full border border-[#0B3C2A] px-5 py-3 font-semibold text-[#0B3C2A]">
+                    Choisir Élite
+                </a>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="bg-[#FDFBF7] py-20">
+    <div class="max-w-3xl mx-auto px-5">
+        <h2 class="font-serif text-3xl text-[#0B3C2A] mb-8 text-center">
+            Questions fréquentes
+        </h2>
+
+        <div class="space-y-4">
+            <article class="faq-item rounded-2xl bg-white border border-gray-100 shadow-sm">
+                <button class="faq-question w-full flex justify-between items-center p-5 text-left font-semibold">
+                    Scorpius remplace-t-il un commercial ?
+                    <span class="faq-icon text-2xl transition">+</span>
+                </button>
+                <p class="faq-answer hidden px-5 pb-5 text-gray-600 leading-relaxed">
+                    Non. Scorpius prépare la prospection : recherche, audit, score et script. Le freelance garde la main sur l’appel et la relation.
+                </p>
+            </article>
+
+            <article class="faq-item rounded-2xl bg-white border border-gray-100 shadow-sm">
+                <button class="faq-question w-full flex justify-between items-center p-5 text-left font-semibold">
+                    Est-ce que Scorpius scrape Malt ou Codeur ?
+                    <span class="faq-icon text-2xl transition">+</span>
+                </button>
+                <p class="faq-answer hidden px-5 pb-5 text-gray-600 leading-relaxed">
+                    Non, pas dans la v2 actuelle. Le périmètre est volontairement concentré sur la recherche d’entreprises locales.
+                </p>
+            </article>
+
+            <article class="faq-item rounded-2xl bg-white border border-gray-100 shadow-sm">
+                <button class="faq-question w-full flex justify-between items-center p-5 text-left font-semibold">
+                    Les données sont-elles séparées par utilisateur ?
+                    <span class="faq-icon text-2xl transition">+</span>
+                </button>
+                <p class="faq-answer hidden px-5 pb-5 text-gray-600 leading-relaxed">
+                    Oui. Chaque utilisateur possède ses propres prospects, missions et statistiques.
+                </p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-[#06261B] text-white py-12">
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 grid md:grid-cols-3 gap-8">
+        <div>
+            <div class="font-bold text-xl mb-3">♏ Scorpius</div>
+            <p class="text-white/55">
+                CRM de prospection locale pour freelances web.
+            </p>
+        </div>
+
+        <div>
+            <h3 class="font-semibold mb-3">Stack technique</h3>
+            <ul class="text-white/55 space-y-2">
+                <li>Flask</li>
+                <li>PostgreSQL / SQLite</li>
+                <li>Playwright</li>
+                <li>Groq / Ollama</li>
+            </ul>
+        </div>
+
+        <div class="flex md:justify-end items-start gap-3">
+            <a href="{{ url_for('login') }}" class="rounded-full border border-white/20 px-5 py-2.5 text-sm">
+                Connexion
+            </a>
+            <a href="{{ url_for('register') }}" class="rounded-full bg-[#D8B76A] px-5 py-2.5 text-sm font-semibold text-[#0B3C2A]">
+                Essai gratuit
+            </a>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 mt-10 pt-6 border-t border-white/10 text-sm text-white/40">
+        © 2026 Scorpius. Tous droits réservés.
+    </div>
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Typewriter IA
+    const target = document.getElementById("typewriter");
+    const sentence = "Trouve moi des électriciens à Bordeaux";
+    let index = 0;
+
+    function type() {
+        if (!target) return;
+        target.textContent = sentence.slice(0, index);
+        index++;
+
+        if (index <= sentence.length) {
+            setTimeout(type, 65);
+        }
+    }
+
+    setTimeout(type, 700);
+
+    // FAQ accordion
+    document.querySelectorAll(".faq-question").forEach((button) => {
+        button.addEventListener("click", () => {
+            const item = button.closest(".faq-item");
+            const answer = item.querySelector(".faq-answer");
+            const icon = item.querySelector(".faq-icon");
+
+            answer.classList.toggle("hidden");
+            icon.style.transform = answer.classList.contains("hidden")
+                ? "rotate(0deg)"
+                : "rotate(45deg)";
+        });
+    });
+});
+</script>
+
+</body>
+</html>

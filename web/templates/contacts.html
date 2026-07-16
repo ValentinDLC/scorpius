@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Contacts{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Contacts</h1>
+        <p class="page-subtitle">Prospects et clients issus de votre pipeline.</p>
+    </div>
+
+    <a href="{{ url_for('prospects') }}" class="btn btn-primary">+ Premier contact</a>
+</section>
+
+<section class="card">
+    <div class="pill-filters">
+        <button class="pill-filter active" data-filter="all">Tous</button>
+        <button class="pill-filter" data-filter="prospect">Prospects</button>
+        <button class="pill-filter" data-filter="client">Clients</button>
+    </div>
+
+    <input class="input" id="contact-search" type="search" placeholder="Rechercher un contact..." style="width:100%; margin-bottom:1rem;">
+
+    {% if not contacts %}
+        <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <h2>Aucun contact</h2>
+            <p class="text-muted" style="margin:1rem 0;">Ajoutez vos premiers prospects depuis la recherche.</p>
+            <a href="{{ url_for('prospects') }}" class="btn btn-primary">+ Premier contact</a>
+        </div>
+    {% else %}
+        <div class="contact-list" id="contact-list">
+            {% for c in contacts %}
+            <article
+                class="card contact-row contact-item"
+                data-type="{{ c.contact_type }}"
+                data-status="{{ c.statut or '' }}"
+                data-name="{{ (c.nom or '')|lower }}"
+            >
+                <div>
+                    <strong>{{ c.nom }}</strong>
+                    <p class="text-muted">{{ c.secteur or "Secteur non renseigné" }}</p>
+                </div>
+
+                <div>{{ c.ville or "-" }}</div>
+
+                <div>
+                    {% if c.contact_type == "client" %}
+                        <span class="badge badge-success">Client</span>
+                    {% else %}
+                        <span class="badge badge-info">Prospect</span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    {% if c.telephone %}
+                    <a href="tel:{{ c.telephone }}" class="btn btn-sm btn-primary">Appeler</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const buttons = document.querySelectorAll(".pill-filter");
+    const search = document.getElementById("contact-search");
+    const items = document.querySelectorAll(".contact-item");
+
+    let activeFilter = "all";
+
+    function applyFilters() {
+        const q = (search?.value || "").toLowerCase().trim();
+
+        items.forEach(item => {
+            const type = item.dataset.type || "";
+            const name = item.dataset.name || "";
+
+            const typeOk = activeFilter === "all" || type === activeFilter;
+            const searchOk = !q || name.includes(q);
+
+            item.classList.toggle("hidden", !(typeOk && searchOk));
+        });
+    }
+
+    buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            buttons.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            activeFilter = btn.dataset.filter || "all";
+            applyFilters();
+        });
+    });
+
+    search?.addEventListener("input", applyFilters);
+});
+</script>
+{% endblock %}

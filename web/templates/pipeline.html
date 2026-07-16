@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Pipeline{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Pipeline commercial</h1>
+        <p class="page-subtitle">Déplacez vos opportunités entre les étapes.</p>
+    </div>
+</section>
+
+<section class="kanban-board">
+    {% for col in columns %}
+    <div class="kanban-column" data-status="{{ col['key'] }}">
+        <div class="kanban-column-header">
+            <h3>{{ col['icon'] }} {{ col['label'] }}</h3>
+            <span class="kanban-total" data-total>{{ col['total_amount'] }}€</span>
+        </div>
+
+        <div class="kanban-dropzone">
+            {% for item in col['items'] %}
+            <article
+                class="kanban-card"
+                draggable="true"
+                data-id="{{ item['id'] }}"
+                data-amount="{{ item['estimated_amount'] }}"
+            >
+                <strong>{{ item['nom'] }}</strong>
+                <p class="text-muted">{{ item['project_title'] }}</p>
+                <p style="margin-top:.75rem; font-weight:800;">{{ item['estimated_amount'] }}€</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    let dragged = null;
+
+    function recalcColumn(column) {
+        const totalNode = column.querySelector("[data-total]");
+        const cards = column.querySelectorAll(".kanban-card");
+        let total = 0;
+
+        cards.forEach(card => {
+            total += Number(card.dataset.amount || 0);
+        });
+
+        if (totalNode) totalNode.textContent = total + "€";
+    }
+
+    document.querySelectorAll(".kanban-card").forEach(card => {
+        card.addEventListener("dragstart", () => {
+            dragged = card;
+            card.classList.add("dragging");
+        });
+
+        card.addEventListener("dragend", () => {
+            card.classList.remove("dragging");
+            dragged = null;
+        });
+    });
+
+    document.querySelectorAll(".kanban-column").forEach(column => {
+        column.addEventListener("dragover", event => {
+            event.preventDefault();
+        });
+
+        column.addEventListener("drop", async event => {
+            event.preventDefault();
+            if (!dragged) return;
+
+            const oldColumn = dragged.closest(".kanban-column");
+            const newStatus = column.dataset.status;
+            const id = dragged.dataset.id;
+
+            column.querySelector(".kanban-dropzone").appendChild(dragged);
+
+            recalcColumn(oldColumn);
+            recalcColumn(column);
+
+            try {
+                const response = await fetch(`/api/prospects/${id}/statut`, {
+                    method: "PATCH",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({statut: newStatus})
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.ok) {
+                    alert(data.message || "Mise à jour impossible");
+                    oldColumn.querySelector(".kanban-dropzone").appendChild(dragged);
+                    recalcColumn(oldColumn);
+                    recalcColumn(column);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Erreur réseau");
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

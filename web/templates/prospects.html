@@ -5,7 +5,6 @@
 .prospects-container{max-width:1200px;margin:0 auto;padding:1.5rem;padding-bottom:100px}
 .prospects-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
 .prospects-header h1{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em}
-.filters-row{display:flex;flex-wrap:wrap;gap:1rem}
 .prospect-header{display:flex;justify-content:space-between;align-items:flex-start}
 .prospect-info{flex:1}
 .prospect-name{font-weight:700;font-size:1.1rem;margin-bottom:.5rem;color:var(--text)}
@@ -35,32 +34,30 @@
     <div class="prospects-header">
         <h1>🎯 Prospects</h1>
         <button id="btn-nouvelle-recherche" class="btn btn-primary">🔍 Nouvelle recherche</button>
-        <button id="btn-voir-crm" class="btn btn-primary" style="background:linear-gradient(135deg,#667eea,#764ba2)">📊 CRM</button>
+        <button id="btn-voir-crm" class="btn btn-ghost">📊 CRM</button>
     </div>
 
-    <div class="filters-card">
-        <div class="filters-row">
-            <select id="filtre-statut" class="input">
-                <option value="">Tous les statuts</option>
-                <option value="a_appeler">📞 A appeler</option>
-                <option value="appele">✅ Appele</option>
-                <option value="relance">🔄 Relance</option>
-                <option value="gagne">🎉 Gagne</option>
-                <option value="perdu">❌ Perdu</option>
-            </select>
-            <select id="filtre-score" class="input">
-                <option value="">Tous les scores</option>
-                <option value="high">🟢 Excellent (60+)</option>
-                <option value="medium">🟡 Moyen (40-59)</option>
-                <option value="low">🔴 Faible (-40)</option>
-            </select>
-            <select id="filtre-sans-site" class="input">
-                <option value="">Tous</option>
-                <option value="1">🌐 Sans site web</option>
-                <option value="0">Avec site web</option>
-            </select>
-            <button id="btn-actualiser" class="btn btn-ghost">🔄 Actualiser</button>
-        </div>
+    <div class="prospects-toolbar">
+        <select id="filtre-statut" class="toolbar-select">
+            <option value="">Tous les statuts</option>
+            <option value="a_appeler">📞 A appeler</option>
+            <option value="appele">✅ Appele</option>
+            <option value="relance">🔄 Relance</option>
+            <option value="gagne">🎉 Gagne</option>
+            <option value="perdu">❌ Perdu</option>
+        </select>
+        <select id="filtre-score" class="toolbar-select">
+            <option value="">Tous les scores</option>
+            <option value="high">🟢 Excellent (60+)</option>
+            <option value="medium">🟡 Moyen (40-59)</option>
+            <option value="low">🔴 Faible (-40)</option>
+        </select>
+        <select id="filtre-sans-site" class="toolbar-select">
+            <option value="">Tous</option>
+            <option value="1">🌐 Sans site web</option>
+            <option value="0">Avec site web</option>
+        </select>
+        <button id="btn-actualiser" class="toolbar-refresh">🔄 Actualiser</button>
     </div>
 
     <div id="prospects-list" class="space-y-4"></div>
@@ -112,15 +109,10 @@
 
         <!-- Argumentaire d'appel -->
         <div id="argumentaire-section" style="margin-top:1rem;display:none">
-            <div style="background:var(--bg3);border-left:3px solid var(--accent);
-                        border-radius:var(--radius-small);padding:1rem;font-size:0.9rem;line-height:1.6;
-                        color:var(--text)">
-                <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;
-                            letter-spacing:0.05em;color:var(--accent);margin-bottom:0.5rem">
-                    💬 Argumentaire suggéré
-                </div>
-                <div id="argumentaire-texte" style="font-style:italic"></div>
-                <div id="argumentaire-loading" style="color:var(--text2);font-size:0.85rem">
+            <div class="argumentaire-paper">
+                <div class="argumentaire-label">💬 Argumentaire suggéré</div>
+                <div id="argumentaire-texte" class="argumentaire-text"></div>
+                <div id="argumentaire-loading" class="argumentaire-loading">
                     ⏳ Génération en cours...
                 </div>
             </div>
@@ -221,11 +213,6 @@
         var siteHtml = p.url_site
             ? '<a href="' + escapeHtml(p.url_site) + '" target="_blank">' + escapeHtml(p.url_site) + '</a>'
             : '<span class="text-warning">Aucun</span>';
-        function auditBadge(ok, labelOk, labelKo) {
-            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
-        }
-        var perfScore = p.audit_performance || 0;
-        var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
         function auditBadge(ok, labelOk, labelKo) {
             return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
         }
@@ -439,7 +426,7 @@
             showToastMsg('Erreur réseau', 'error');
         }
     };
-    
+
     window.showToastMsg = function(msg, type) {
         var toast = document.createElement('div');
         toast.className = 'toast-notification ' + type;
@@ -447,7 +434,7 @@
         document.getElementById('toast-container').appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
     };
-    
+
     document.getElementById('btn-voir-crm').addEventListener('click', () => window.location.href = '/crm');
 
 })();

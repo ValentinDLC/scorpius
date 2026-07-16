@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Dashboard{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Vue business globale de votre prospection.</p>
+    </div>
+</section>
+
+<section class="card" id="onboarding-banner">
+    <button class="btn btn-ghost btn-sm" id="hide-onboarding" style="float:right;">×</button>
+    <h2 style="margin-bottom:1rem;">Premiers pas</h2>
+
+    <div class="business-grid-3">
+        <div>
+            <h3>1. Configurez votre profil</h3>
+            <p class="text-muted" style="margin:.5rem 0 1rem;">Ajoutez vos informations business.</p>
+            <a href="{{ url_for('profile_settings') }}" class="btn btn-primary btn-sm">Compléter</a>
+        </div>
+        <div>
+            <h3>2. Recherchez des prospects</h3>
+            <p class="text-muted" style="margin:.5rem 0 1rem;">Trouvez des entreprises à contacter.</p>
+            <a href="{{ url_for('prospects') }}" class="btn btn-primary btn-sm">Rechercher</a>
+        </div>
+        <div>
+            <h3>3. Suivez le pipeline</h3>
+            <p class="text-muted" style="margin:.5rem 0 1rem;">Transformez vos prospects en clients.</p>
+            <a href="{{ url_for('pipeline') }}" class="btn btn-primary btn-sm">Voir pipeline</a>
+        </div>
+    </div>
+</section>
+
+<section class="kpi-grid">
+    <article class="card kpi-card">
+        <div class="kpi-value">{{ stats.total }}</div>
+        <div class="kpi-label">Prospects</div>
+    </article>
+
+    <article class="card kpi-card accent">
+        <div class="kpi-value">{{ stats.missions }}</div>
+        <div class="kpi-label">Missions à venir</div>
+    </article>
+
+    <article class="card kpi-card warning">
+        <div class="kpi-value">{{ stats.appele }}</div>
+        <div class="kpi-label">Contacts appelés</div>
+    </article>
+
+    <article class="card kpi-card danger">
+        <div class="kpi-value">{{ stats.relance }}</div>
+        <div class="kpi-label">Relances</div>
+    </article>
+
+    <article class="card kpi-card">
+        <div class="kpi-value">{{ stats.gagne }}</div>
+        <div class="kpi-label">Gagnés</div>
+    </article>
+
+    <article class="card kpi-card accent">
+        <div class="kpi-value">0€</div>
+        <div class="kpi-label">CA estimé</div>
+    </article>
+</section>
+
+<section class="business-grid-2">
+    <article class="card">
+        <h2 style="margin-bottom:1rem;">Chiffre d'affaires</h2>
+        <div id="ca-data" data-values="{{ ca_mensuel|tojson }}"></div>
+        <canvas id="ca-chart" height="110"></canvas>
+    </article>
+
+    <article class="card">
+        <h2 style="margin-bottom:1rem;">Cotisations</h2>
+
+        <label class="label" for="activity-type">Type d'activité</label>
+        <select class="input" id="activity-type" style="width:100%; margin-bottom:1rem;">
+            <option value="0.212">Prestation de service — 21.2%</option>
+            <option value="0.123">Vente — 12.3%</option>
+            <option value="0.211">Libéral — 21.1%</option>
+        </select>
+
+        <p class="text-muted">CA encaissé</p>
+        <div class="kpi-value" id="ca-encaisse" data-ca="{{ ca_encaisse }}">{{ ca_encaisse }}€</div>
+
+        <p class="text-muted" style="margin-top:1rem;">Cotisations à prévoir</p>
+        <div class="kpi-value" id="cotisations-value">0€</div>
+    </article>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const banner = document.getElementById("onboarding-banner");
+    const hideBtn = document.getElementById("hide-onboarding");
+
+    if (localStorage.getItem("scorpius_onboarding_hidden") === "1" && banner) {
+        banner.classList.add("hidden");
+    }
+
+    hideBtn?.addEventListener("click", () => {
+        localStorage.setItem("scorpius_onboarding_hidden", "1");
+        banner?.classList.add("hidden");
+    });
+
+    const caNode = document.getElementById("ca-data");
+    const values = JSON.parse(caNode?.dataset.values || "[]");
+
+    const canvas = document.getElementById("ca-chart");
+    if (canvas && window.Chart) {
+        new Chart(canvas, {
+            type: "bar",
+            data: {
+                labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"],
+                datasets: [{
+                    label: "CA encaissé",
+                    data: values,
+                    backgroundColor: "rgba(139,154,108,0.55)",
+                    borderRadius: 12
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: "rgba(255,255,255,0.08)" } }
+                }
+            }
+        });
+    }
+
+    const select = document.getElementById("activity-type");
+    const ca = Number(document.getElementById("ca-encaisse")?.dataset.ca || 0);
+    const output = document.getElementById("cotisations-value");
+
+    function updateCotisations() {
+        const rate = Number(select.value || 0);
+        output.textContent = Math.round(ca * rate) + "€";
+    }
+
+    select?.addEventListener("change", updateCotisations);
+    updateCotisations();
+});
+</script>
+{% endblock %}

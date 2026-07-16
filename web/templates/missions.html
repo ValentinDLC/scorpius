@@ -1,184 +1,174 @@
 {% extends "base.html" %}
+
 {% block title %}Scorpius — Missions à venir{% endblock %}
 
 {% block content %}
 
 <section class="page-header">
-  <div>
-    <h1 class="page-title">🎯 Missions à venir</h1>
-    <p class="page-subtitle">
-      {{ missions|length }} entreprise(s) sélectionnée(s) pour prospection
-    </p>
-  </div>
-  <a href="{{ url_for('prospects') }}" class="btn btn-primary btn-sm">
-    ➕ Ajouter depuis Prospects
-  </a>
+    <div>
+        <h1 class="page-title">🎯 Missions à venir</h1>
+        <p class="page-subtitle">
+            {{ missions|length }} entreprise(s) sélectionnée(s) pour prospection
+        </p>
+    </div>
+
+    <a href="{{ url_for('prospects') }}" class="btn btn-primary btn-sm">
+        ➕ Ajouter depuis Prospects
+    </a>
 </section>
 
 {% if not missions %}
-<div class="empty-state" style="text-align:center; padding: 4rem 2rem;">
-  <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-  <h2>Aucune mission pour le moment</h2>
-  <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-    Va dans la page <strong>Prospects</strong>, sélectionne les entreprises
-    à contacter et clique sur <strong>"Ajouter aux missions"</strong>.
-  </p>
-  <a href="{{ url_for('prospects') }}" class="btn btn-primary">
-    Aller aux Prospects
-  </a>
-</div>
+
+<section class="card">
+    <div class="empty-state" style="text-align:center; padding:3rem 1rem;">
+        <div style="font-size:3rem; margin-bottom:1rem;">📭</div>
+        <h2 style="font-size:1.1rem; margin-bottom:0.5rem;">
+            Aucune mission pour le moment
+        </h2>
+        <p style="color:var(--text2); margin-bottom:1rem;">
+            Recherchez des entreprises dans Prospects puis sélectionnez celles
+            que vous souhaitez contacter.
+        </p>
+        <a href="{{ url_for('prospects') }}" class="btn btn-primary">
+            Aller aux Prospects
+        </a>
+    </div>
+</section>
 
 {% else %}
 
 <div class="missions-grid">
-  {% for m in missions %}
-  <article class="mission-card" id="mission-{{ m.id }}">
+    {% for m in missions %}
 
-    <div class="mission-header">
-      <div class="mission-score">
-        <div class="score-number {% if m.score_audit <= 40 %}score-bad{% elif m.score_audit <= 70 %}score-medium{% else %}score-good{% endif %}">
-          {{ m.score_audit }}
-        </div>
-        <div class="score-label">/100</div>
-      </div>
-      <div class="mission-info">
-        <h2 class="mission-titre">{{ m.nom }}</h2>
-        <p class="mission-meta">
-          {% if m.ville %}📍 {{ m.ville }}{% endif %}
-          {% if m.secteur %} · {{ m.secteur }}{% endif %}
-        </p>
-      </div>
-    </div>
+        {% set id = m.get('id', 0) %}
+        {% set nom = m.get('nom', 'Entreprise sans nom') %}
+        {% set score = m.get('score_audit', 0) | int %}
+        {% set ville = m.get('ville', '') %}
+        {% set secteur = m.get('secteur', '') %}
+        {% set telephone = m.get('telephone', '') %}
+        {% set maps = m.get('google_maps_url', '') %}
+        {% set site = m.get('url_site', '') %}
+        {% set mobile = m.get('audit_mobile', false) %}
+        {% set gmb = m.get('audit_gmb', false) %}
+        {% set seo_title = m.get('seo_title', false) %}
 
-    <!-- Détails audit -->
-    <div class="audit-badges" style="margin: 0.75rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      {% if not m.audit_mobile %}
-      <span class="badge badge-danger">📱 Pas mobile</span>
-      {% endif %}
-      {% if not m.audit_gmb %}
-      <span class="badge badge-warning">📍 GMB manquant</span>
-      {% endif %}
-      {% if not m.seo_title %}
-      <span class="badge badge-warning">🔍 Titre SEO absent</span>
-      {% endif %}
-      {% if m.audit_mobile and m.audit_gmb and m.seo_title %}
-      <span class="badge badge-success">✅ Bien optimisé</span>
-      {% endif %}
-    </div>
+        {% if score <= 40 %}
+            {% set ring_class = "score-ring-bad" %}
+        {% elif score <= 70 %}
+            {% set ring_class = "score-ring-medium" %}
+        {% else %}
+            {% set ring_class = "score-ring-good" %}
+        {% endif %}
 
-    <!-- Actions -->
-    <div class="mission-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;">
-      {% if m.telephone %}
-      <a href="tel:{{ m.telephone }}" class="btn btn-sm btn-primary">
-        📞 {{ m.telephone }}
-      </a>
-      {% endif %}
+        <article class="mission-card" id="mission-{{ id }}">
 
-      {% if m.google_maps_url %}
-      <a href="{{ m.google_maps_url }}" target="_blank" class="btn btn-sm">
-        🗺️ Maps
-      </a>
-      {% endif %}
+            <div class="mission-header">
+                <div class="mission-score-ring {{ ring_class }}">
+                    <span class="score-num">{{ score }}</span>
+                    <span class="score-max">/100</span>
+                </div>
 
-      {% if m.url_site %}
-      <a href="{{ m.url_site }}" target="_blank" class="btn btn-sm">
-        🌐 Site
-      </a>
-      {% endif %}
+                <div class="mission-identity">
+                    <h2 class="mission-titre">{{ nom }}</h2>
+                    {% if ville or secteur %}
+                    <p class="mission-meta">
+                        {% if ville %}📍 {{ ville }}{% endif %}
+                        {% if ville and secteur %} · {% endif %}
+                        {% if secteur %}{{ secteur }}{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
 
-      <button
-        class="btn btn-sm btn-danger"
-        onclick="retirerMission({{ m.id }})"
-        title="Retirer des missions"
-      >
-        ✕ Retirer
-      </button>
-    </div>
+            <div class="mission-divider"></div>
 
-  </article>
-  {% endfor %}
+            <div class="audit-badges">
+                {% if not mobile %}
+                <span class="badge badge-danger">📱 Mobile à améliorer</span>
+                {% endif %}
+
+                {% if not gmb %}
+                <span class="badge badge-warning">📍 Google Business absent</span>
+                {% endif %}
+
+                {% if not seo_title %}
+                <span class="badge badge-warning">🔍 SEO à améliorer</span>
+                {% endif %}
+
+                {% if mobile and gmb and seo_title %}
+                <span class="badge badge-success">✅ Audit correct</span>
+                {% endif %}
+            </div>
+
+            <div class="mission-actions-primary">
+                {% if telephone %}
+                <a href="tel:{{ telephone }}" class="btn-pill-lg btn-pill-accent">
+                    📞 Appeler
+                </a>
+                {% endif %}
+
+                {% if maps %}
+                <a href="{{ maps }}" target="_blank" rel="noopener" class="btn-pill-lg btn-pill-ghost">
+                    🗺️ Maps
+                </a>
+                {% endif %}
+            </div>
+
+            {% if site %}
+            <div class="mission-actions-secondary">
+                <a href="{{ site }}" target="_blank" rel="noopener" class="mission-link-discreet">
+                    🌐 Voir le site
+                </a>
+            </div>
+            {% endif %}
+
+            <button
+                type="button"
+                class="mission-remove-link"
+                onclick="retirerMission({{ id }})"
+            >
+                ✕ Retirer des missions
+            </button>
+
+        </article>
+
+    {% endfor %}
 </div>
 
 {% endif %}
 
+
 <script>
 async function retirerMission(id) {
-  if (!confirm("Retirer cette entreprise des missions ?")) return;
-  const res = await fetch(`/api/prospects/${id}/statut`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ statut: 'a_appeler' })
-  });
-  if (res.ok) {
-    document.getElementById(`mission-${id}`).remove();
-    const subtitle = document.querySelector('.page-subtitle');
-    if (subtitle) {
-      const cards = document.querySelectorAll('.mission-card');
-      subtitle.textContent = `${cards.length} entreprise(s) sélectionnée(s) pour prospection`;
+    if (!id) {
+        alert("Identifiant prospect invalide.");
+        return;
     }
-  } else {
-    alert("Erreur lors du retrait");
-  }
+
+    if (!confirm("Retirer cette entreprise des missions à venir ?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/prospects/${id}/statut`, {
+            method: "PATCH",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({statut: "a_appeler"})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            alert(data.message || "Impossible de retirer cette mission.");
+            return;
+        }
+
+        window.location.reload();
+    } catch (error) {
+        console.error(error);
+        alert("Erreur réseau.");
+    }
 }
 </script>
 
-<style>
-.missions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-.mission-card {
-  background: var(--card-bg, #1e1e2e);
-  border: 1px solid var(--border, #333);
-  border-radius: 12px;
-  padding: 1.25rem;
-  transition: border-color 0.2s;
-}
-.mission-card:hover {
-  border-color: var(--accent, #7c3aed);
-}
-.mission-header {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-}
-.mission-score {
-  text-align: center;
-  flex-shrink: 0;
-}
-.score-number {
-  font-size: 1.5rem;
-  font-weight: 700;
-  padding: 0.4rem 0.6rem;
-  border-radius: 8px;
-  min-width: 52px;
-}
-.score-bad    { background: #ef44441a; color: #ef4444; }
-.score-medium { background: #f59e0b1a; color: #f59e0b; }
-.score-good   { background: #22c55e1a; color: #22c55e; }
-.score-label  { font-size: 0.7rem; color: var(--text-muted, #888); }
-.mission-titre {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem;
-}
-.mission-meta {
-  font-size: 0.8rem;
-  color: var(--text-muted, #888);
-  margin: 0;
-}
-.badge {
-  font-size: 0.72rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  font-weight: 500;
-}
-.badge-danger  { background: #ef44441a; color: #ef4444; }
-.badge-warning { background: #f59e0b1a; color: #f59e0b; }
-.badge-success { background: #22c55e1a; color: #22c55e; }
-.btn-danger    { background: #ef44441a; color: #ef4444; border: 1px solid #ef444433; }
-.btn-danger:hover { background: #ef4444; color: white; }
-</style>
 {% endblock %}

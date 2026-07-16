@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Profil entreprise{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Profil entreprise</h1>
+        <p class="page-subtitle">Paramètres business et informations légales.</p>
+    </div>
+</section>
+
+<section class="card">
+    <h2 style="margin-bottom:1rem;">Informations entreprise</h2>
+
+    <div class="grid grid-cols-2">
+        <div>
+            <label class="label">SIRET</label>
+            <div style="display:flex; gap:.5rem;">
+                <input class="input" id="siret" style="flex:1;" placeholder="Ex : 12345678900010">
+                <button class="btn btn-primary" id="search-siret">Rechercher</button>
+            </div>
+        </div>
+
+        <div>
+            <label class="label">Raison sociale</label>
+            <input class="input" id="raison-sociale" style="width:100%;">
+        </div>
+
+        <div>
+            <label class="label">Adresse</label>
+            <input class="input" id="adresse" style="width:100%;">
+        </div>
+
+        <div>
+            <label class="label">Code postal</label>
+            <input class="input" id="code-postal" style="width:100%;">
+        </div>
+
+        <div>
+            <label class="label">Ville</label>
+            <input class="input" id="ville" style="width:100%;">
+        </div>
+
+        <div>
+            <label class="label">TVA intracommunautaire</label>
+            <input class="input" id="tva" style="width:100%;">
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2 style="margin-bottom:1rem;">Relances & validité</h2>
+
+    <div class="grid grid-cols-2">
+        <div>
+            <label class="label">Validité des devis</label>
+            <input class="input" type="number" value="30" style="width:100%;">
+        </div>
+
+        <div>
+            <label class="label">Délai avant relance</label>
+            <input class="input" type="number" value="7" style="width:100%;">
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("search-siret");
+
+    btn?.addEventListener("click", async () => {
+        const siret = document.getElementById("siret").value.trim();
+
+        if (!siret) {
+            alert("Entre un SIRET.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(siret)}`);
+            const data = await response.json();
+            const first = data.results?.[0];
+
+            if (!first) {
+                alert("Entreprise introuvable.");
+                return;
+            }
+
+            document.getElementById("raison-sociale").value = first.nom_complet || first.nom_raison_sociale || "";
+            document.getElementById("adresse").value = first.siege?.adresse || "";
+            document.getElementById("code-postal").value = first.siege?.code_postal || "";
+            document.getElementById("ville").value = first.siege?.libelle_commune || "";
+
+            const siren = (first.siren || siret.slice(0, 9));
+            document.getElementById("tva").value = siren ? `FRXX${siren}` : "";
+
+        } catch (error) {
+            console.error(error);
+            alert("Erreur lors de la recherche SIRET.");
+        }
+    });
+});
+</script>
+{% endblock %}

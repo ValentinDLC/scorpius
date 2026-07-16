@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Devis & Factures{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Devis & Factures</h1>
+        <p class="page-subtitle">Créez vos documents commerciaux.</p>
+    </div>
+
+    <button class="btn btn-primary" onclick="openDocumentModal()">+ Nouveau document</button>
+</section>
+
+<section class="card">
+    <table class="doc-table">
+        <thead>
+            <tr>
+                <th>Numéro</th>
+                <th>Client</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Montant</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if not documents %}
+            <tr>
+                <td colspan="6" class="text-muted">Aucun document pour le moment.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</section>
+
+<div class="modal hidden" id="document-modal">
+    <div class="modal-content modal-lg">
+        <div class="page-header">
+            <h2>Nouveau document</h2>
+            <button class="btn btn-ghost btn-sm" onclick="closeDocumentModal()">×</button>
+        </div>
+
+        <div class="grid grid-cols-2">
+            <div>
+                <label class="label">Client</label>
+                <input class="input" style="width:100%;" placeholder="Nom du client">
+            </div>
+            <div>
+                <label class="label">Type</label>
+                <select class="input" style="width:100%;">
+                    <option>Devis</option>
+                    <option>Facture</option>
+                </select>
+            </div>
+        </div>
+
+        <h3 style="margin:1.5rem 0 1rem;">Lignes</h3>
+
+        <div class="document-lines" id="document-lines"></div>
+
+        <button class="btn btn-ghost btn-sm" onclick="addLine()" style="margin-top:1rem;">+ Ajouter une ligne</button>
+
+        <div class="card" style="margin-top:1rem;">
+            <p>Total HT : <strong id="total-ht">0€</strong></p>
+            <p>TVA 20% : <strong id="total-tva">0€</strong></p>
+            <p>Total TTC : <strong id="total-ttc">0€</strong></p>
+        </div>
+
+        <div style="display:flex; gap:.75rem; justify-content:flex-end; margin-top:1rem;">
+            <button class="btn btn-ghost" onclick="closeDocumentModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="downloadPDF()">Télécharger PDF</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js"></script>
+<script>
+function openDocumentModal() {
+    document.getElementById("document-modal").classList.remove("hidden");
+    if (!document.querySelector(".document-line")) addLine();
+}
+
+function closeDocumentModal() {
+    document.getElementById("document-modal").classList.add("hidden");
+}
+
+function addLine() {
+    const container = document.getElementById("document-lines");
+    const line = document.createElement("div");
+
+    line.className = "document-line";
+    line.innerHTML = `
+        <input class="input designation" placeholder="Désignation">
+        <input class="input qty" type="number" min="1" value="1">
+        <input class="input price" type="number" min="0" value="0">
+        <strong class="line-total">0€</strong>
+        <button class="btn btn-danger btn-sm" type="button">×</button>
+    `;
+
+    line.querySelectorAll("input").forEach(input => {
+        input.addEventListener("input", recalcTotals);
+    });
+
+    line.querySelector("button").addEventListener("click", () => {
+        line.remove();
+        recalcTotals();
+    });
+
+    container.appendChild(line);
+    recalcTotals();
+}
+
+function recalcTotals() {
+    let ht = 0;
+
+    document.querySelectorAll(".document-line").forEach(line => {
+        const qty = Number(line.querySelector(".qty").value || 0);
+        const price = Number(line.querySelector(".price").value || 0);
+        const total = qty * price;
+
+        line.querySelector(".line-total").textContent = total.toFixed(2) + "€";
+        ht += total;
+    });
+
+    const tva = ht * 0.20;
+    const ttc = ht + tva;
+
+    document.getElementById("total-ht").textContent = ht.toFixed(2) + "€";
+    document.getElementById("total-tva").textContent = tva.toFixed(2) + "€";
+    document.getElementById("total-ttc").textContent = ttc.toFixed(2) + "€";
+}
+
+function downloadPDF() {
+    const element = document.querySelector("#document-modal .modal-content");
+    html2pdf().from(element).save("document-scorpius.pdf");
+}
+</script>
+{% endblock %}

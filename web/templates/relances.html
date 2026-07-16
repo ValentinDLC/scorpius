@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Scorpius — Relances{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Relances</h1>
+        <p class="page-subtitle">Suivez les prospects à relancer.</p>
+    </div>
+</section>
+
+<section class="kpi-grid">
+    <article class="card kpi-card danger">
+        <div class="kpi-value">{{ counts.en_retard }}</div>
+        <div class="kpi-label">En retard</div>
+    </article>
+    <article class="card kpi-card warning">
+        <div class="kpi-value">{{ counts.a_relancer }}</div>
+        <div class="kpi-label">À relancer</div>
+    </article>
+    <article class="card kpi-card">
+        <div class="kpi-value">{{ counts.fait }}</div>
+        <div class="kpi-label">Fait</div>
+    </article>
+</section>
+
+<section class="card">
+    <h2 style="margin-bottom:1rem;">Tâches de relance</h2>
+
+    {% if not relances %}
+        <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <h2>Aucune relance</h2>
+            <p class="text-muted">Tout est à jour.</p>
+        </div>
+    {% else %}
+        <div class="contact-list">
+        {% for r in relances %}
+            <article class="card contact-row">
+                <div>
+                    <strong>{{ r.nom }}</strong>
+                    <p class="text-muted">Relance commerciale</p>
+                </div>
+                <div>{{ r.telephone or "-" }}</div>
+                <div><span class="badge badge-warning">À relancer</span></div>
+                <button class="btn btn-primary btn-sm" onclick="openRelanceModal('{{ r.nom }}')">Relancer</button>
+            </article>
+        {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+<div class="modal hidden" id="relance-modal">
+    <div class="modal-content">
+        <div class="page-header">
+            <h2>Relance rapide</h2>
+            <button class="btn btn-ghost btn-sm" onclick="closeRelanceModal()">×</button>
+        </div>
+
+        <textarea class="input" id="relance-text" style="width:100%; min-height:220px;"></textarea>
+
+        <div style="display:flex; gap:.75rem; justify-content:flex-end; margin-top:1rem;">
+            <button class="btn btn-ghost" onclick="closeRelanceModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="sendRelance()">Envoyer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openRelanceModal(nom) {
+    const modal = document.getElementById("relance-modal");
+    const textarea = document.getElementById("relance-text");
+
+    textarea.value = `Bonjour ${nom},
+
+Je me permets de revenir vers vous concernant notre échange.
+
+Je pense que nous pouvons vous aider à améliorer votre présence en ligne et à générer davantage de contacts qualifiés.
+
+Seriez-vous disponible cette semaine pour en discuter rapidement ?
+
+Bien cordialement,`;
+
+    modal.classList.remove("hidden");
+}
+
+function closeRelanceModal() {
+    document.getElementById("relance-modal").classList.add("hidden");
+}
+
+function sendRelance() {
+    closeRelanceModal();
+    alert("Relance simulée avec succès ✅");
+}
+</script>
+{% endblock %}
