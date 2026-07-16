@@ -32,12 +32,15 @@ from storage.db import (
 )
 
 from dashboard.prospects_routes import register_prospects_routes
+from dashboard.business_routes import register_business_routes
 from dashboard.calls_routes import register_calls_routes
 from dashboard.voice_profile_routes import register_voice_profile_routes
 from storage.prospects import init_prospects_db
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+print("DEBUG SMTP_USER:", repr(os.getenv("SMTP_USER")))
+print("DEBUG SMTP_PASSWORD len:", len(os.getenv("SMTP_PASSWORD") or ""))
 
 
 
@@ -121,6 +124,7 @@ def run_async(coro):
 # PROSPECTS — SPRINT 1
 # ══════════════════════════════════════════════════════════════════════════════
 register_prospects_routes(app, login_required, ok, err, run_async)
+register_business_routes(app, login_required, get_theme)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -160,42 +164,58 @@ def login():
 
     if request.method == "POST":
         if request.is_json:
-            payload = request.get_json(silent=True) or {}
+            payload  = request.get_json(silent=True) or {}
             password = payload.get("password", "") or ""
-            email = payload.get("email", "") or ""
+            email    = payload.get("email", "") or ""
         else:
             password = request.form.get("password", "") or ""
-            email = request.form.get("email", "") or ""
+            email    = request.form.get("email", "") or ""
 
         password = str(password)
-        email = (email or "").strip().lower()
+        email    = (email or "").strip().lower()
 
         if email:
             from storage.users import get_user_by_email, verify_user_password
             user = get_user_by_email(email)
+
             if user and verify_user_password(user, password):
+                # Compte non verifie
+                if not user.get("email_verified"):
+                    from storage.users import generate_verification_code, set_verification_code
+                    from services.email_service import send_verification_code as send_code
+                    code = generate_verification_code()
+                    set_verification_code(email, code)
+                    send_code(email, code)
+                    session["pending_verify_email"] = email
+                    if request.is_json:
+                        return err("Email non verifie — code renvoye", 403)
+                    flash("Votre email n\'est pas verifie. Un nouveau code vous a ete envoye.", "error")
+                    return redirect(url_for("verify_email"))
+
                 session["authenticated"] = True
-                session.permanent = True
-                session["user_id"] = int(user["id"])
-                session["user_nom"] = user.get("nom") or "Utilisateur"
+                session.permanent        = True
+                session["user_id"]       = int(user["id"])
+                session["user_nom"]      = user.get("nom") or "Utilisateur"
                 if request.is_json:
-                    return ok(message="Connecté")
-                flash("Connexion réussie.", "success")
+                    return ok(message="Connecte")
+                flash("Connexion reussie.", "success")
                 return redirect(url_for("missions"))
+
             if request.is_json:
                 return err("Email ou mot de passe incorrect", 401)
             flash("Email ou mot de passe incorrect.", "error")
             return render_template("login.html", theme=get_theme())
 
+        # Connexion admin par mot de passe seul
         expected = os.getenv("SCORPIUS_PASSWORD", "scorpius")
         if password == expected:
             session["authenticated"] = True
-            session.permanent = True
-            session["user_id"] = 0
-            session["user_nom"] = "Admin"
+            session.permanent        = True
+            session["user_id"]       = 0
+            session["user_nom"]      = "Admin"
             if request.is_json:
-                return ok(message="Connecté")
-            flash("Connexion réussie.", "success")
+                return ok(message="Connecte")
+            flash("Connexion reussie.", "success")
             return redirect(url_for("missions"))
 
         if request.is_json:
@@ -212,10 +232,10 @@ def register():
         return redirect(url_for("missions"))
 
     if request.method == "POST":
-        nom = (request.form.get("nom") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
+        nom      = (request.form.get("nom") or "").strip()
+        email    = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
-        confirm = request.form.get("confirm_password") or ""
+        confirm  = request.form.get("confirm_password") or ""
 
         if not nom or not email or not password:
             flash("Nom, email et mot de passe sont requis.", "error")
@@ -225,23 +245,140 @@ def register():
             flash("Les mots de passe ne correspondent pas.", "error")
             return render_template("register.html", theme=get_theme())
 
-        from storage.users import create_user
+        from storage.users import create_user, generate_verification_code, set_verification_code
+        from services.email_service import send_verification_code as send_code
+
         user_id = create_user(nom=nom, email=email, password=password)
         if not user_id:
-            flash("Impossible de créer le compte (email déjà utilisé ?).", "error")
+            flash("Impossible de creer le compte (email deja utilise ?).", "error")
             return render_template("register.html", theme=get_theme())
 
-        flash("Compte créé ✅ Vous pouvez vous connecter.", "success")
-        return redirect(url_for("login"))
+        code = generate_verification_code()
+        set_verification_code(email, code)
+        send_code(email, code)
+
+        session["pending_verify_email"] = email
+        flash("Compte cree. Verifiez votre email et entrez le code.", "success")
+        return redirect(url_for("verify_email"))
 
     return render_template("register.html", theme=get_theme())
 
+
+@app.route("/verify-email", methods=["GET", "POST"])
+def verify_email():
+    email = session.get("pending_verify_email", "")
+
+    if request.method == "POST":
+        code = (request.form.get("code") or "").strip()
+
+        if not email:
+            flash("Session expiree. Reconnectez-vous.", "error")
+            return redirect(url_for("login"))
+
+        from storage.users import verify_email_code
+        if verify_email_code(email, code):
+            session.pop("pending_verify_email", None)
+            flash("Email verifie. Vous pouvez vous connecter.", "success")
+            return redirect(url_for("login"))
+
+        flash("Code incorrect ou expire.", "error")
+
+    return render_template("verify_email.html", email=email, theme=get_theme())
+
+
+@app.route("/resend-code")
+def resend_code():
+    email = session.get("pending_verify_email", "")
+    if not email:
+        flash("Session expiree.", "error")
+        return redirect(url_for("login"))
+
+    from storage.users import generate_verification_code, set_verification_code, get_user_by_email
+    from services.email_service import send_verification_code as send_code
+
+    user = get_user_by_email(email)
+    if not user:
+        flash("Compte introuvable.", "error")
+        return redirect(url_for("login"))
+
+    if user.get("email_verified"):
+        flash("Cet email est deja verifie.", "success")
+        return redirect(url_for("login"))
+
+    code = generate_verification_code()
+    set_verification_code(email, code)
+    send_code(email, code)
+    flash("Un nouveau code a ete envoye.", "success")
+    return redirect(url_for("verify_email"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+
+        if email:
+            from storage.users import get_user_by_email
+            from services.email_service import send_password_reset_link
+            from itsdangerous import URLSafeTimedSerializer
+
+            user = get_user_by_email(email)
+            if user:
+                s         = URLSafeTimedSerializer(app.secret_key)
+                token     = s.dumps(email, salt="password-reset")
+                base_url  = os.getenv("APP_BASE_URL", "http://localhost:5000")
+                reset_url = f"{base_url}/reset-password/{token}"
+                send_password_reset_link(email, reset_url)
+
+        # Reponse identique que l'email existe ou non
+        flash("Si un compte existe pour cet email, un lien a ete envoye.", "success")
+        return render_template("forgot_password.html", theme=get_theme())
+
+    return render_template("forgot_password.html", theme=get_theme())
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+
+    s     = URLSafeTimedSerializer(app.secret_key)
+    email = None
+
+    try:
+        email = s.loads(token, salt="password-reset", max_age=3600)
+    except SignatureExpired:
+        flash("Ce lien a expire. Faites une nouvelle demande.", "error")
+        return render_template("reset_password.html", valid_token=False, token=token, theme=get_theme())
+    except BadSignature:
+        flash("Lien invalide.", "error")
+        return render_template("reset_password.html", valid_token=False, token=token, theme=get_theme())
+
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirm  = request.form.get("confirm_password") or ""
+
+        if not password:
+            flash("Le mot de passe ne peut pas etre vide.", "error")
+            return render_template("reset_password.html", valid_token=True, token=token, theme=get_theme())
+
+        if password != confirm:
+            flash("Les mots de passe ne correspondent pas.", "error")
+            return render_template("reset_password.html", valid_token=True, token=token, theme=get_theme())
+
+        from storage.users import update_password
+        if update_password(email, password):
+            flash("Mot de passe mis a jour. Vous pouvez vous connecter.", "success")
+            return redirect(url_for("login"))
+
+        flash("Erreur lors de la mise a jour.", "error")
+
+    return render_template("reset_password.html", valid_token=True, token=token, theme=get_theme())
 
 @app.route("/logout")
 def logout():
     session.clear()
     flash("Déconnecté.", "info")
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
 
 @app.route("/api/auth/status")
@@ -262,6 +399,11 @@ def voice_login():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/")
+def index():
+    """Page d'accueil publique — vitrine commerciale Scorpius."""
+    return render_template("index.html", theme=get_theme())
+
+
 @app.route("/missions")
 @login_required
 def missions():
