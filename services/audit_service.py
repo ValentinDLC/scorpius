@@ -5,12 +5,13 @@ from services.seo_audit import audit_seo_tags
 
 def compute_audit_score(*, has_site: bool, audit_mobile: bool, audit_performance: int, audit_seo: int, audit_gmb: bool) -> int:
     score = 0
-    score += 25 if has_site else 0
+    score += 20 if has_site else 0
     score += 20 if audit_mobile else 0
     score += min(max(audit_performance, 0), 100) * 0.35
-    score += min(max(audit_seo, 0), 100) * 0.20
-    score += 20 if audit_gmb else 0
-    return int(round(min(score, 100)))
+    score += min(max(audit_seo, 0), 100) * 0.25
+    
+    # On garantit que le score restera toujours entre 0 et 100
+    return int(round(min(max(score, 0), 100)))
 
 async def audit_one_prospect(prospect: dict) -> dict:
     url = prospect.get("url_site")
