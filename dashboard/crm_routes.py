@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, session
 from sqlalchemy import text
 import logging
 
@@ -9,18 +9,22 @@ logger = logging.getLogger(__name__)
 
 crm_bp = Blueprint("crm", __name__)
 
-
 STATUSES = ["Nouveau", "À démarcher", "En cours", "Gagné", "Perdu"]
-
 
 @crm_bp.route("/crm")
 def crm_dashboard():
+    user_id = session.get("user_id")
+    
     status_filter = request.args.get("status", "all")
     highlight_id = request.args.get("highlight")
 
     with get_conn() as conn:
-        where = "" if status_filter == "all" else "WHERE statut = :status"
-        params = {} if status_filter == "all" else {"status": status_filter}
+        if status_filter == "all":
+            where = "WHERE user_id = :user_id"
+            params = {"user_id": user_id}
+        else:
+            where = "WHERE user_id = :user_id AND statut = :status"
+            params = {"user_id": user_id, "status": status_filter}
 
         rows = conn.execute(
             text(f"SELECT * FROM prospects {where} ORDER BY score_audit ASC"),
@@ -29,14 +33,17 @@ def crm_dashboard():
         prospects = [dict(row._mapping) for row in rows]
 
         stats = {"total": 0}
-        total = conn.execute(text("SELECT COUNT(*) FROM prospects")).fetchone()
+        total = conn.execute(
+            text("SELECT COUNT(*) FROM prospects WHERE user_id = :user_id"),
+            {"user_id": user_id}
+        ).fetchone()
         stats["total"] = total[0] if total else 0
 
         for s in STATUSES:
             key = s.lower().replace(" ", "_").replace("à", "a")
             res = conn.execute(
-                text("SELECT COUNT(*) FROM prospects WHERE statut = :s"),
-                {"s": s},
+                text("SELECT COUNT(*) FROM prospects WHERE user_id = :user_id AND statut = :s"),
+                {"user_id": user_id, "s": s},
             ).fetchone()
             stats[key] = res[0] if res else 0
 
@@ -54,12 +61,14 @@ def crm_dashboard():
 
 @crm_bp.route("/crm/prospects/<int:prospect_id>/add", methods=["POST"])
 def add_prospect_to_crm(prospect_id: int):
+    user_id = session.get("user_id")
     try:
         with get_conn() as conn:
             row = conn.execute(
-                text("SELECT nom FROM prospects WHERE id = :id"),
-                {"id": prospect_id},
+                text("SELECT nom FROM prospects WHERE id = :id AND user_id = :user_id"),
+                {"id": prospect_id, "user_id": user_id},
             ).fetchone()
+            
             if not row:
                 return jsonify({"ok": False, "message": "Prospect non trouvé"}), 404
 
@@ -71,9 +80,9 @@ def add_prospect_to_crm(prospect_id: int):
                     UPDATE prospects
                     SET statut = 'À démarcher',
                         updated_at = """ + now_sql + """
-                    WHERE id = :id
+                    WHERE id = :id AND user_id = :user_id
                 """),
-                {"id": prospect_id},
+                {"id": prospect_id, "user_id": user_id},
             )
 
         return jsonify(
@@ -90,6 +99,7 @@ def add_prospect_to_crm(prospect_id: int):
 
 @crm_bp.route("/api/crm/prospects/<int:prospect_id>/statut", methods=["PATCH"])
 def api_update_prospect_statut(prospect_id: int):
+    user_id = session.get("user_id")
     data = request.get_json(silent=True) or {}
     new_status = data.get("statut")
 
@@ -99,9 +109,10 @@ def api_update_prospect_statut(prospect_id: int):
     try:
         with get_conn() as conn:
             row = conn.execute(
-                text("SELECT nom FROM prospects WHERE id = :id"),
-                {"id": prospect_id},
+                text("SELECT nom FROM prospects WHERE id = :id AND user_id = :user_id"),
+                {"id": prospect_id, "user_id": user_id},
             ).fetchone()
+            
             if not row:
                 return jsonify({"ok": False, "message": "Prospect non trouvé"}), 404
 
@@ -113,9 +124,9 @@ def api_update_prospect_statut(prospect_id: int):
                     UPDATE prospects
                     SET statut = :statut,
                         updated_at = """ + now_sql + """
-                    WHERE id = :id
+                    WHERE id = :id AND user_id = :user_id
                 """),
-                {"id": prospect_id, "statut": new_status},
+                {"id": prospect_id, "statut": new_status, "user_id": user_id},
             )
 
         return jsonify(
@@ -128,14 +139,10 @@ def api_update_prospect_statut(prospect_id: int):
 
 
 def register_crm_routes(app, login_required, ok, err):
-    """
-    Enregistre le blueprint et applique login_required sur les endpoints
-    pour rester cohérent avec le reste de l'app.
-    """
     app.register_blueprint(crm_bp)
 
-    # Protéger les vues (HTML et API) avec le même wrapper que le reste
     for endpoint_name in ("crm_dashboard", "add_prospect_to_crm", "api_update_prospect_statut"):
         endpoint = f"{crm_bp.name}.{endpoint_name}"
         if endpoint in app.view_functions:
             app.view_functions[endpoint] = login_required(app.view_functions[endpoint])
+
