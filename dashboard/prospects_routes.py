@@ -58,7 +58,7 @@ def register_prospects_routes(app, login_required, ok, err, run_async):
                 secteur=parsed["secteur"],
                 ville=parsed["ville"],
                 rayon_km=parsed["rayon_km"],
-                filtre_sans_site=parsed["filtre_sans_site"],
+                priorite_sans_site=parsed["priorite_sans_site"],
                 max_results=limit,
             )
 

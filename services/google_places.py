@@ -108,12 +108,13 @@ def parse_place_to_prospect(place: Dict, secteur: str = "", ville: str = "") -> 
         "raw_google_json": raw_json,
     }
 
-def search_prospects(secteur: str, ville: str, rayon_km: int = 10, filtre_sans_site: bool = False, limit: int = 10) -> List[Dict]:
+def search_prospects(secteur: str, ville: str, rayon_km: int = 0, # Non implémenté par API
+, priorite_sans_site: bool = False, limit: int = 10) -> List[Dict]:
     text_query = f"{secteur} {ville}"
-    places = search_places(text_query=text_query, language_code="fr", max_results=limit * 2 if filtre_sans_site else limit)
+    places = search_places(text_query=text_query, language_code="fr", max_results=limit * 2 if priorite_sans_site else limit)
     prospects = [parse_place_to_prospect(p, secteur=secteur, ville=ville) for p in places]
     
-    if filtre_sans_site:
+    if priorite_sans_site:
         sans_site = [p for p in prospects if p["sans_site"]]
         avec_site = [p for p in prospects if not p["sans_site"]]
         prospects = sans_site + avec_site
@@ -126,7 +127,7 @@ def search_prospects(secteur: str, ville: str, rayon_km: int = 10, filtre_sans_s
 # Wrapper de compatibilité (pour prospects_routes.py)
 # ──────────────────────────────────────────────────────────────────────────────
 
-def search_google_places(secteur: str, ville: str, rayon_km: int = 10, filtre_sans_site: bool = False, max_results: int = 10) -> List[Dict]:
+def search_google_places(secteur: str, ville: str, rayon_km: int = 10, priorite_sans_site: bool = False, max_results: int = 10) -> List[Dict]:
     """
     Ancienne signature pour compatibilité avec prospects_routes.py
     """
@@ -134,6 +135,6 @@ def search_google_places(secteur: str, ville: str, rayon_km: int = 10, filtre_sa
         secteur=secteur,
         ville=ville,
         rayon_km=rayon_km,
-        filtre_sans_site=filtre_sans_site,
+        priorite_sans_site=priorite_sans_site,
         limit=max_results,
     )
