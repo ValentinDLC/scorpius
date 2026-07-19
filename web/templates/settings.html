@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Scorpius — Réglages{% endblock %}
+{% block title %}OBO — Réglages{% endblock %}
 
 {% block content %}
 
 <section class="page-header">
     <div>
-        <h1 class="page-title">⚙️ Réglages</h1>
+        <h1 class="page-title"><!-- icon:settings --> Réglages</h1>
         <p class="page-subtitle">
             Préférences et informations de votre espace de prospection.
         </p>
@@ -15,11 +15,11 @@
 
 <section class="card" style="margin-bottom: 1rem;">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
-        🎯 Méthode de travail
+        <!-- icon:target --> Méthode de travail
     </h2>
 
     <p style="color: var(--text2); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem;">
-        Scorpius est actuellement configuré pour la recherche et le suivi
+        OBO est actuellement configuré pour la recherche et le suivi
         d'entreprises à prospecter.
     </p>
 
@@ -40,7 +40,7 @@
 
 <section class="card" style="margin-bottom: 1rem;">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
-        👤 Compte
+         Compte
     </h2>
 
     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -60,7 +60,7 @@
 
 <section class="card" style="margin-bottom: 1rem;">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
-        🎨 Apparence
+         Apparence
     </h2>
 
     <p style="color: var(--text2); font-size: 0.9rem; margin-bottom: 1rem;">
@@ -73,13 +73,13 @@
         class="btn btn-primary"
         onclick="changerTheme()"
     >
-        {{ "☀️ Passer au thème clair" if theme == "dark" else "🌙 Passer au thème sombre" }}
+        {{ "☀️ Passer au thème clair" if theme == "dark" else " Passer au thème sombre" }}
     </button>
 </section>
 
 <section class="card" style="margin-bottom: 1rem;">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
-        🗄️ Diagnostic
+        ️ Diagnostic
     </h2>
 
     <p style="color: var(--text2); font-size: 0.9rem; margin-bottom: 1rem;">
@@ -107,11 +107,11 @@
 
 <section class="card">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">
-        📱 Installation mobile
+         Installation mobile
     </h2>
 
     <p style="color: var(--text2); font-size: 0.9rem; line-height: 1.5;">
-        Vous pouvez installer Scorpius comme une application sur votre téléphone.
+        Vous pouvez installer OBO comme une application sur votre téléphone.
     </p>
 
     <ul style="
@@ -175,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             if (data?.ok && data?.data?.connected) {
-                setResult("Base de données connectée ✅", "success");
+                setResult("Base de données connectée ✔", "success");
             } else {
                 setResult("Base de données inaccessible.", "error");
             }

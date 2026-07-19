@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Scorpius — Statistiques{% endblock %}
+{% block title %}OBO — Statistiques{% endblock %}
 
 {% block content %}
 
 <section class="page-header">
     <div>
-        <h1 class="page-title">📊 Statistiques de prospection</h1>
+        <h1 class="page-title"><!-- icon:bar-chart --> Statistiques de prospection</h1>
         <p class="page-subtitle">
             Vue d'ensemble de votre vivier d'entreprises et de vos missions à venir.
         </p>
@@ -39,7 +39,7 @@
 
 <section class="card">
     <div class="empty-state" style="padding: 2.5rem 1rem;">
-        <div class="empty-icon">🎯</div>
+        <div class="empty-icon"><!-- icon:target --></div>
         <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem;">
             Votre vivier est vide
         </h2>
@@ -65,13 +65,13 @@
     </p>
 
     {% set rows = [
-        ("🆕", "Nouveaux prospects", stats.nouveaux),
-        ("📞", "À appeler", stats.a_appeler),
-        ("🎯", "Missions à venir", stats.missions),
-        ("✅", "Appelés", stats.appele),
-        ("🔄", "Relances", stats.relance),
-        ("🎉", "Gagnés", stats.gagne),
-        ("❌", "Perdus", stats.perdu)
+        ("", "Nouveaux prospects", stats.nouveaux),
+        ("<!-- icon:phone -->", "À appeler", stats.a_appeler),
+        ("<!-- icon:target -->", "Missions à venir", stats.missions),
+        ("✔", "Appelés", stats.appele),
+        ("", "Relances", stats.relance),
+        ("", "Gagnés", stats.gagne),
+        ("✘", "Perdus", stats.perdu)
     ] %}
 
     <div class="pipeline">

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Prospects — Scorpius{% endblock %}
+{% block title %}Prospects — OBO{% endblock %}
 {% block content %}
 <style>
 .prospects-container{max-width:1200px;margin:0 auto;padding:1.5rem;padding-bottom:100px}
@@ -32,32 +32,32 @@
 <div id="toast-container" class="toast-container"></div>
 <div class="prospects-container">
     <div class="prospects-header">
-        <h1>🎯 Prospects</h1>
-        <button id="btn-nouvelle-recherche" class="btn btn-primary">🔍 Nouvelle recherche</button>
-        <button id="btn-voir-crm" class="btn btn-ghost">📊 CRM</button>
+        <h1><!-- icon:target --> Prospects</h1>
+        <button id="btn-nouvelle-recherche" class="btn btn-primary"> Nouvelle recherche</button>
+        <button id="btn-voir-crm" class="btn btn-ghost"><!-- icon:bar-chart --> CRM</button>
     </div>
 
     <div class="prospects-toolbar">
         <select id="filtre-statut" class="toolbar-select">
             <option value="">Tous les statuts</option>
-            <option value="a_appeler">📞 A appeler</option>
-            <option value="appele">✅ Appele</option>
-            <option value="relance">🔄 Relance</option>
-            <option value="gagne">🎉 Gagne</option>
-            <option value="perdu">❌ Perdu</option>
+            <option value="a_appeler"><!-- icon:phone --> A appeler</option>
+            <option value="appele">✔ Appele</option>
+            <option value="relance"> Relance</option>
+            <option value="gagne"> Gagne</option>
+            <option value="perdu">✘ Perdu</option>
         </select>
         <select id="filtre-score" class="toolbar-select">
             <option value="">Tous les scores</option>
-            <option value="high">🟢 Excellent (60+)</option>
-            <option value="medium">🟡 Moyen (40-59)</option>
-            <option value="low">🔴 Faible (-40)</option>
+            <option value="high"> Excellent (60+)</option>
+            <option value="medium"> Moyen (40-59)</option>
+            <option value="low"> Faible (-40)</option>
         </select>
         <select id="filtre-sans-site" class="toolbar-select">
             <option value="">Tous</option>
-            <option value="1">🌐 Sans site web</option>
+            <option value="1"> Sans site web</option>
             <option value="0">Avec site web</option>
         </select>
-        <button id="btn-actualiser" class="toolbar-refresh">🔄 Actualiser</button>
+        <button id="btn-actualiser" class="toolbar-refresh"> Actualiser</button>
     </div>
 
     <div id="prospects-list" class="space-y-4"></div>
@@ -67,7 +67,7 @@
 <div id="search-modal" class="modal hidden">
     <div class="modal-content">
         <div class="prospects-header">
-            <h2>🔍 Rechercher des prospects</h2>
+            <h2> Rechercher des prospects</h2>
             <button id="btn-close-search" class="btn btn-ghost">✕</button>
         </div>
         <div class="space-y-4">
@@ -91,9 +91,9 @@
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem">
                 <input type="checkbox" id="search-sans-site">
-                <label for="search-sans-site">🌐 Prioriser sans site web</label>
+                <label for="search-sans-site"> Prioriser sans site web</label>
             </div>
-            <button id="btn-lancer-recherche" class="btn btn-primary btn-full">🚀 Lancer la recherche</button>
+            <button id="btn-lancer-recherche" class="btn btn-primary btn-full"><!-- icon:rocket --> Lancer la recherche</button>
         </div>
     </div>
 </div>
@@ -102,7 +102,7 @@
 <div id="prospect-modal" class="modal hidden">
     <div class="modal-content modal-lg">
         <div class="prospects-header">
-            <h2 id="prospect-nom">📋 Detail</h2>
+            <h2 id="prospect-nom"> Detail</h2>
             <button id="btn-close-prospect" class="btn btn-ghost">✕</button>
         </div>
         <div id="prospect-detail" class="space-y-4"></div>
@@ -110,7 +110,7 @@
         <!-- Argumentaire d'appel -->
         <div id="argumentaire-section" style="margin-top:1rem;display:none">
             <div class="argumentaire-paper">
-                <div class="argumentaire-label">💬 Argumentaire suggéré</div>
+                <div class="argumentaire-label"> Argumentaire suggéré</div>
                 <div id="argumentaire-texte" class="argumentaire-text"></div>
                 <div id="argumentaire-loading" class="argumentaire-loading">
                     ⏳ Génération en cours...
@@ -119,14 +119,14 @@
         </div>
 
         <div class="grid grid-cols-2 space-y-4" style="margin-top:1.5rem">
-            <a id="btn-call" href="#" class="btn btn-primary btn-full">📞 Appeler</a>
-            <a id="btn-maps" href="#" target="_blank" class="btn btn-secondary btn-full">🗺️ Maps</a>
+            <a id="btn-call" href="#" class="btn btn-primary btn-full"><!-- icon:phone --> Appeler</a>
+            <a id="btn-maps" href="#" target="_blank" class="btn btn-secondary btn-full">️ Maps</a>
         </div>
         <div class="grid grid-cols-4 space-y-4" style="margin-top:0.5rem">
-            <button id="btn-statut-appele" class="btn btn-sm btn-primary">✅ Appele</button>
-            <button id="btn-statut-relance" class="btn btn-sm btn-warning">🔄 Relance</button>
-            <button id="btn-statut-gagne" class="btn btn-sm btn-success">🎉 Gagne</button>
-            <button id="btn-statut-perdu" class="btn btn-sm btn-danger">❌ Perdu</button>
+            <button id="btn-statut-appele" class="btn btn-sm btn-primary">✔ Appele</button>
+            <button id="btn-statut-relance" class="btn btn-sm btn-warning"> Relance</button>
+            <button id="btn-statut-gagne" class="btn btn-sm btn-success"> Gagne</button>
+            <button id="btn-statut-perdu" class="btn btn-sm btn-danger">✘ Perdu</button>
         </div>
     </div>
 </div>
@@ -214,22 +214,22 @@
             ? '<a href="' + escapeHtml(p.url_site) + '" target="_blank">' + escapeHtml(p.url_site) + '</a>'
             : '<span class="text-warning">Aucun</span>';
         function auditBadge(ok, labelOk, labelKo) {
-            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✅ ' + labelOk : '❌ ' + labelKo) + '</span>';
+            return '<span class="' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '✔ ' + labelOk : '✘ ' + labelKo) + '</span>';
         }
         var perfScore = p.audit_performance || 0;
         var scoreCls = p.score_audit >= 60 ? 'success' : (p.score_audit >= 40 ? 'warning' : 'danger');
         var auditHtml = '<div class="filters-card" style="margin-top:1rem">'
-            + '<h4 style="margin-bottom:0.75rem">📊 Audit — Score : <span class="badge badge-' + scoreCls + '">' + p.score_audit + '/100</span></h4>'
+            + '<h4 style="margin-bottom:0.75rem"><!-- icon:bar-chart --> Audit — Score : <span class="badge badge-' + scoreCls + '">' + p.score_audit + '/100</span></h4>'
             + '<div class="grid grid-cols-2" style="gap:0.5rem">'
-            + '<div><span class="label">📱 Mobile</span><br>' + auditBadge(p.audit_mobile, 'Optimisé', 'Non optimisé') + '</div>'
-            + '<div><span class="label">⚡ Perf</span><br><span class="' + (perfScore > 50 ? 'text-success' : 'text-danger') + '">' + (perfScore > 0 ? perfScore + '/100' : '⚠️ N/A') + '</span></div>'
-            + '<div><span class="label">🔍 SEO</span><br><span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_seo + '/100</span></div>'
-            + '<div><span class="label">🗺️ GMB</span><br>' + auditBadge(p.audit_gmb, 'Présent', 'Absent') + '</div>'
+            + '<div><span class="label"> Mobile</span><br>' + auditBadge(p.audit_mobile, 'Optimisé', 'Non optimisé') + '</div>'
+            + '<div><span class="label">⚡ Perf</span><br><span class="' + (perfScore > 50 ? 'text-success' : 'text-danger') + '">' + (perfScore > 0 ? perfScore + '/100' : '! N/A') + '</span></div>'
+            + '<div><span class="label"> SEO</span><br><span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">' + p.audit_seo + '/100</span></div>'
+            + '<div><span class="label">️ GMB</span><br>' + auditBadge(p.audit_gmb, 'Présent', 'Absent') + '</div>'
             + '</div>'
             + '<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text2)">'
-            + 'SEO : ' + (p.seo_title ? '✅' : '❌') + ' Title '
-            + (p.seo_meta_description ? '✅' : '❌') + ' Meta '
-            + (p.seo_h1 ? '✅' : '❌') + ' H1'
+            + 'SEO : ' + (p.seo_title ? '✔' : '✘') + ' Title '
+            + (p.seo_meta_description ? '✔' : '✘') + ' Meta '
+            + (p.seo_h1 ? '✔' : '✘') + ' H1'
             + '</div></div>';
         document.getElementById('prospect-detail').innerHTML =
             '<div class="grid grid-cols-2">'
@@ -309,7 +309,7 @@
             var res = await fetch(url);
             var data = await res.json();
             if (!data.ok || !data.data || data.data.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><p class="text-muted">Aucun prospect.</p><button id="btn-premiere-recherche" class="btn btn-primary" style="margin-top:1rem">Premiere recherche</button></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><!-- icon:target --></div><p class="text-muted">Aucun prospect.</p><button id="btn-premiere-recherche" class="btn btn-primary" style="margin-top:1rem">Premiere recherche</button></div>';
                 var btnPremiere = document.getElementById('btn-premiere-recherche');
                 if (btnPremiere) btnPremiere.addEventListener('click', openSearchModal);
                 return;
@@ -334,19 +334,19 @@
                     + ' <span class="badge badge-' + getScoreClass(p.score_audit) + '">' + p.score_audit + '/100</span>'
                     + ' <span class="badge badge-' + getStatutClass(p.statut) + '">' + getStatutLabel(p.statut) + '</span>'
                     + '</div>'
-                    + '<div class="prospect-address">📍 ' + escapeHtml(p.adresse) + '</div>'
+                    + '<div class="prospect-address"> ' + escapeHtml(p.adresse) + '</div>'
                     + '</div>'
                     + '<div class="prospect-audit">'
                     + '<div class="prospect-audit-icons">'
-                    + '<span class="' + (p.audit_mobile ? 'text-success' : 'text-danger') + '">📱</span>'
+                    + '<span class="' + (p.audit_mobile ? 'text-success' : 'text-danger') + '"></span>'
                     + '<span class="' + (p.audit_performance > 50 ? 'text-success' : 'text-danger') + '">⚡</span>'
-                    + '<span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '">🔍</span>'
-                    + '<span class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '">📍</span>'
+                    + '<span class="' + (p.audit_seo > 50 ? 'text-success' : 'text-danger') + '"></span>'
+                    + '<span class="' + (p.audit_gmb ? 'text-success' : 'text-danger') + '"></span>'
                     + '</div>'
                     + '<button class="btn-add-crm" onclick="addProspectToCRM(' + p.id + ', \'" + escapeHtml(p.nom) + "\'); event.stopPropagation(); return false;" style="margin-top:0.5rem">➕ CRM</button>'
                     + (p.statut === 'mission'
-                        ? '<div class="mission-selected">✅ En mission</div>'
-                        : '<button class="btn-add-mission" onclick="passerEnMission(' + p.id + ', event); return false;">🎯 Mission</button>')
+                        ? '<div class="mission-selected">✔ En mission</div>'
+                        : '<button class="btn-add-mission" onclick="passerEnMission(' + p.id + ', event); return false;"><!-- icon:target --> Mission</button>')
                     + '</div></div></div></div>';
             }).join('');
             container.querySelectorAll('.prospect-card').forEach(function(card) {
@@ -374,7 +374,7 @@
             var data = await res.json();
 
             if (res.ok && data.ok) {
-                showToastMsg('Entreprise ajoutée aux missions ✅', 'success');
+                showToastMsg('Entreprise ajoutée aux missions ✔', 'success');
                 loadProspects();
             } else {
                 showToastMsg('Erreur : ' + (data.message || 'mise à jour impossible'), 'error');
@@ -412,7 +412,7 @@
             var data = await res.json();
             if (data.ok) {
                 btn.classList.add('added');
-                btn.textContent = '✅ CRM';
+                btn.textContent = '✔ CRM';
                 showToastMsg(data.message, 'success');
                 setTimeout(() => window.location.href = data.redirect, 1500);
             } else {
@@ -430,7 +430,7 @@
     window.showToastMsg = function(msg, type) {
         var toast = document.createElement('div');
         toast.className = 'toast-notification ' + type;
-        toast.innerHTML = (type === 'success' ? '✅' : '❌') + ' ' + msg;
+        toast.innerHTML = (type === 'success' ? '✔' : '✘') + ' ' + msg;
         document.getElementById('toast-container').appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
     };

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Scorpius — Devis & Factures{% endblock %}
+{% block title %}OBO — Devis & Factures{% endblock %}
 
 {% block content %}
 <section class="page-header">
@@ -132,7 +132,7 @@ function recalcTotals() {
 
 function downloadPDF() {
     const element = document.querySelector("#document-modal .modal-content");
-    html2pdf().from(element).save("document-scorpius.pdf");
+    html2pdf().from(element).save("document-obo.pdf");
 }
 </script>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Scorpius — Relances{% endblock %}
+{% block title %}OBO — Relances{% endblock %}
 
 {% block content %}
 <section class="page-header">
@@ -29,7 +29,7 @@
 
     {% if not relances %}
         <div class="empty-state">
-            <div class="empty-icon">✅</div>
+            <div class="empty-icon">✔</div>
             <h2>Aucune relance</h2>
             <p class="text-muted">Tout est à jour.</p>
         </div>
@@ -90,7 +90,7 @@ function closeRelanceModal() {
 
 function sendRelance() {
     closeRelanceModal();
-    alert("Relance simulée avec succès ✅");
+    alert("Relance simulée avec succès ✔");
 }
 </script>
 {% endblock %}

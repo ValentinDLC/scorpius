@@ -1,4 +1,4 @@
-# Scorpius v2
+# OBO v2
 
 Agent de prospection freelance autonome.
 

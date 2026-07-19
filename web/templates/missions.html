@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Scorpius — Missions à venir{% endblock %}
+{% block title %}OBO — Missions à venir{% endblock %}
 
 {% block content %}
 
 <section class="page-header">
     <div>
-        <h1 class="page-title">🎯 Missions à venir</h1>
+        <h1 class="page-title"><!-- icon:target --> Missions à venir</h1>
         <p class="page-subtitle">
             {{ missions|length }} entreprise(s) sélectionnée(s) pour prospection
         </p>
@@ -21,7 +21,7 @@
 
 <section class="card">
     <div class="empty-state" style="text-align:center; padding:3rem 1rem;">
-        <div style="font-size:3rem; margin-bottom:1rem;">📭</div>
+        <div style="font-size:3rem; margin-bottom:1rem;"></div>
         <h2 style="font-size:1.1rem; margin-bottom:0.5rem;">
             Aucune mission pour le moment
         </h2>
@@ -72,7 +72,7 @@
                     <h2 class="mission-titre">{{ nom }}</h2>
                     {% if ville or secteur %}
                     <p class="mission-meta">
-                        {% if ville %}📍 {{ ville }}{% endif %}
+                        {% if ville %} {{ ville }}{% endif %}
                         {% if ville and secteur %} · {% endif %}
                         {% if secteur %}{{ secteur }}{% endif %}
                     </p>
@@ -84,32 +84,32 @@
 
             <div class="audit-badges">
                 {% if not mobile %}
-                <span class="badge badge-danger">📱 Mobile à améliorer</span>
+                <span class="badge badge-danger"> Mobile à améliorer</span>
                 {% endif %}
 
                 {% if not gmb %}
-                <span class="badge badge-warning">📍 Google Business absent</span>
+                <span class="badge badge-warning"> Google Business absent</span>
                 {% endif %}
 
                 {% if not seo_title %}
-                <span class="badge badge-warning">🔍 SEO à améliorer</span>
+                <span class="badge badge-warning"> SEO à améliorer</span>
                 {% endif %}
 
                 {% if mobile and gmb and seo_title %}
-                <span class="badge badge-success">✅ Audit correct</span>
+                <span class="badge badge-success">✔ Audit correct</span>
                 {% endif %}
             </div>
 
             <div class="mission-actions-primary">
                 {% if telephone %}
                 <a href="tel:{{ telephone }}" class="btn-pill-lg btn-pill-accent">
-                    📞 Appeler
+                    <!-- icon:phone --> Appeler
                 </a>
                 {% endif %}
 
                 {% if maps %}
                 <a href="{{ maps }}" target="_blank" rel="noopener" class="btn-pill-lg btn-pill-ghost">
-                    🗺️ Maps
+                    ️ Maps
                 </a>
                 {% endif %}
             </div>
@@ -117,7 +117,7 @@
             {% if site %}
             <div class="mission-actions-secondary">
                 <a href="{{ site }}" target="_blank" rel="noopener" class="mission-link-discreet">
-                    🌐 Voir le site
+                     Voir le site
                 </a>
             </div>
             {% endif %}

@@ -107,7 +107,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔐 Connexion {{ plateforme|capitalize }}</h1>
+        <h1> Connexion {{ plateforme|capitalize }}</h1>
         
         <div class="step">
             <span class="step-number">1</span>
@@ -125,11 +125,11 @@
         </div>
         
         <a href="{{ login_url }}" target="_blank" class="btn" id="btn-ouvrir">
-            🌐 Ouvrir {{ plateforme }}
+             Ouvrir {{ plateforme }}
         </a>
         
         <button onclick="terminer()" class="btn btn-secondary" id="btn-terminer" disabled>
-            ✅ J'ai terminé
+            ✔ J'ai terminé
         </button>
         
         <div id="status"></div>
@@ -161,16 +161,16 @@
                 
                 if (data.ok) {
                     status.className = 'success';
-                    status.textContent = '✅ Session sauvegardée ! Vous pouvez fermer cette fenêtre.';
+                    status.textContent = '✔ Session sauvegardée ! Vous pouvez fermer cette fenêtre.';
                     
                     setTimeout(() => {
                         window.close();
                     }, 2000);
                 } else {
-                    status.textContent = '❌ ' + data.message;
+                    status.textContent = '✘ ' + data.message;
                 }
             } catch(e) {
-                status.textContent = '❌ Erreur réseau';
+                status.textContent = '✘ Erreur réseau';
             }
         }
     </script>

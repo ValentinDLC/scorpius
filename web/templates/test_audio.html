@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCORPIUS - Transcription Live</title>
+    <title>OBO - Transcription Live</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light p-4">
     <div class="container col-md-8 mx-auto bg-white p-4 rounded shadow">
-        <h2 class="mb-3">🎙️ SCORPIUS — Transcription en direct</h2>
+        <h2 class="mb-3">️ OBO — Transcription en direct</h2>
 
         <p class="text-muted">
             Clique démarrer, parle, et la transcription doit apparaître ici toutes les quelques secondes.
             En mode privacy, aucun audio n'est sauvegardé.
         </p>
 
-        <button id="btn-rec" class="btn btn-primary w-100 mb-3">🎙️ Démarrer l'appel</button>
+        <button id="btn-rec" class="btn btn-primary w-100 mb-3">️ Démarrer l'appel</button>
 
         <div id="status" class="alert alert-secondary text-center">⏸️ Prêt</div>
 
@@ -27,14 +27,14 @@
             <span id="speaker-badge" class="badge bg-secondary">speaker inconnu</span>
         </div>
 
-        <h5>📝 Transcription live</h5>
+        <h5><!-- icon:file-text --> Transcription live</h5>
         <div id="live-transcript"
              class="border rounded p-3 mb-3 bg-light fs-5"
              style="min-height: 150px; white-space: pre-wrap;">
             <span class="text-muted">Aucune transcription pour le moment.</span>
         </div>
 
-        <h5>📜 Historique reçu pendant cet appel</h5>
+        <h5> Historique reçu pendant cet appel</h5>
         <div id="feed"
              class="border rounded p-3 mb-3"
              style="height: 240px; overflow-y: auto; background:#fafafa;">
@@ -85,17 +85,17 @@
 
         function onStatus(status) {
             const labels = {
-                connected: '🟢 Connecté',
-                recording: '🔴 Enregistrement + transcription live...',
+                connected: ' Connecté',
+                recording: ' Enregistrement + transcription live...',
                 stopped: '⏹️ Arrêté',
-                disconnected: '🔌 Déconnecté',
-                error: '❌ Erreur WebSocket',
-                mic_error: '🚫 Micro refusé'
+                disconnected: ' Déconnecté',
+                error: '✘ Erreur WebSocket',
+                mic_error: ' Micro refusé'
             };
 
             const label = labels[status] || status;
             statusBox.textContent = label;
-            btn.textContent = status === 'recording' ? '⏹️ Arrêter' : '🎙️ Démarrer';
+            btn.textContent = status === 'recording' ? '⏹️ Arrêter' : '️ Démarrer';
             log(label);
         }
 
@@ -121,8 +121,8 @@
             const speakerLine = document.createElement('div');
             speakerLine.className = speaker === "ME" ? "fw-bold text-success mb-1" : "fw-bold text-danger mb-1";
             speakerLine.textContent = speaker === "ME"
-                ? `🧑 ME${similarity !== null ? " · sim=" + similarity : ""}`
-                : `👤 UNKNOWN${similarity !== null ? " · sim=" + similarity : ""}`;
+                ? ` ME${similarity !== null ? " · sim=" + similarity : ""}`
+                : ` UNKNOWN${similarity !== null ? " · sim=" + similarity : ""}`;
 
             const content = document.createElement('div');
             content.style.whiteSpace = "pre-wrap";
@@ -133,33 +133,33 @@
             item.appendChild(content);
             feedBox.prepend(item);
 
-            log(`📝 ${clean.slice(0, 120)}${clean.length > 120 ? "..." : ""}`);
+            log(`<!-- icon:file-text --> ${clean.slice(0, 120)}${clean.length > 120 ? "..." : ""}`);
         }
 
         function onEvent(event) {
             if (event.type === 'server_status') {
                 setBadge(
                     'mode-badge',
-                    event.privacy_mode ? '🔒 privacy ON' : '🧪 demo',
+                    event.privacy_mode ? ' privacy ON' : ' demo',
                     event.privacy_mode ? 'bg-success' : 'bg-warning text-dark'
                 );
 
                 setBadge(
                     'save-badge',
-                    event.save_audio ? '💾 audio sauvegardé' : '🚫 audio non sauvegardé',
+                    event.save_audio ? ' audio sauvegardé' : ' audio non sauvegardé',
                     event.save_audio ? 'bg-warning text-dark' : 'bg-success'
                 );
 
                 setBadge(
                     'stt-badge',
-                    event.live_stt ? '🧠 STT live ON' : 'STT live OFF',
+                    event.live_stt ? ' STT live ON' : 'STT live OFF',
                     event.live_stt ? 'bg-primary' : 'bg-secondary'
                 );
 
                 setBadge(
                     'speaker-badge',
                     event.speaker_guard
-                        ? (event.me_profile_exists ? '🧬 Speaker Guard ON' : '⚠️ Profil ME absent')
+                        ? (event.me_profile_exists ? ' Speaker Guard ON' : '! Profil ME absent')
                         : 'Speaker Guard OFF',
                     event.speaker_guard
                         ? (event.me_profile_exists ? 'bg-info text-dark' : 'bg-danger')
@@ -173,14 +173,14 @@
                 setBadge(
                     'speaker-badge',
                     event.speaker === 'ME'
-                        ? `🧑 ME sim=${event.similarity}`
-                        : `👤 UNKNOWN sim=${event.similarity}`,
+                        ? ` ME sim=${event.similarity}`
+                        : ` UNKNOWN sim=${event.similarity}`,
                     event.speaker === 'ME' ? 'bg-success' : 'bg-danger'
                 );
             }
 
             if (event.type === 'speaker_error') {
-                log(`⚠️ Speaker error: ${event.error}`);
+                log(`! Speaker error: ${event.error}`);
             }
 
             if (event.type === 'transcript') {
@@ -192,11 +192,11 @@
             }
 
             if (event.type === 'stt_error') {
-                log(`⚠️ STT error: ${event.error}`);
+                log(`! STT error: ${event.error}`);
             }
 
             if (event.type === 'call_saved') {
-                log(`📞 call_id=${event.call_id} audio_saved=${event.audio_saved}`);
+                log(`<!-- icon:phone --> call_id=${event.call_id} audio_saved=${event.audio_saved}`);
             }
         }
 
