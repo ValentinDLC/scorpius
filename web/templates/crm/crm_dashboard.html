@@ -182,7 +182,7 @@
                                    class="btn btn-sm btn-outline-secondary {% if current_filter == 'all' %}active{% endif %}">
                                     Tous
                                 </a>
-                                {% for status in statuses %}
+                                {% for key, label in statuses.items() %}
                                 <a href="/crm?status={{ status }}&sort={{ current_sort }}&order={{ current_order }}" 
                                    class="btn btn-sm btn-outline-secondary {% if current_filter == status %}active{% endif %}">
                                     {{ status }}
@@ -287,11 +287,11 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <select class="status-select status-{{ prospect.statut|lower|replace(' ', '_') }}" 
+                                    <select class="status-select status-{{ prospect.statut }}" 
                                             data-prospect-id="{{ prospect.id }}"
                                             data-current-status="{{ prospect.statut }}">
-                                        {% for status in statuses %}
-                                        <option value="{{ status }}" {% if prospect.statut == status %}selected{% endif %}>
+                                        {% for key, label in statuses.items() %}
+                                        <option value="{{ key }}" {% if prospect.statut == key %}selected{% endif %}>
                                             {{ status }}
                                         </option>
                                         {% endfor %}
